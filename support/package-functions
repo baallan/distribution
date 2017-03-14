@@ -1,0 +1,243 @@
+# support scripting for bash + git
+
+# extract version string from autoconf file
+function pack_get_ac_version {
+	x=$(grep AC_INIT $1 | cut -d, -f 2 | sed -e 's/[[:space:]]//g')
+	echo $x
+}
+
+# extract name string from autoconf file
+# e.g. y=$(pack_get_ac_name configure.ac )
+function pack_get_ac_name {
+	x=$(grep AC_INIT $1 | cut -d, -f 1 | sed -e 's/.*(//g' -e 's/[[:space:]]//g')
+	echo $x
+}
+
+# fail and warn if any file given is missing or not regular.
+function pack_checkfiles {
+	local bad=0
+	for i in $*; do
+		if ! test -f $i; then
+			echo "	Missing $i"
+			bad=1
+		else
+			: echo File $i found.
+		fi
+	done
+	return $bad
+}
+
+# fail and warn if any dir given is missing or not dir.
+function pack_checkdirs {
+	local bad=0
+	for i in $*; do
+		if ! test -d $i; then
+			echo "	Missing $i"
+			bad=1
+		else
+			: echo Directory $i found.
+		fi
+	done
+	return $bad
+}
+
+# cray gpcd check
+function pack_ck_gpcd {
+	if ! test -f gpcd-support/configure.ac; then
+		echo "you need to get gpcd in place before running this. try:"
+		echo "git submodule init gpcd-support"
+		echo "git submodule update gpcd-support"
+		echo "or copying manually to populate gpcd-support/"
+		echo "The git commands will NOT work from a github zip download"
+		return 1
+	fi
+	return 0
+}
+
+# sos check
+function pack_ck_sos {
+	if ! test -f sos/configure.ac; then
+		echo "you need to get sos in place before running this. try:"
+		echo "git submodule init sos"
+		echo "git submodule update sos"
+		echo "or copying manually to populate sos/"
+		echo "The git commands will NOT work from a github zip download"
+		return 1
+	fi
+	return 0
+}
+
+# yaml check
+function pack_ck_yaml {
+	pack_checkfiles /usr/include/yaml.h /usr/lib64/libyaml.so
+	x=$?
+	return $x
+}
+
+# libevent2 check
+function pack_ck_event {
+	# special case for ovis libevent2 package
+	if test -f /usr/lib64/ovis-libevent2/include/event.h; then
+		return 0
+	fi
+	if echo "$*" | grep with-libevent >/dev/null; then
+		return 0; # trust user knows where libevent2 is if said.
+	fi
+	pack_checkfiles /usr/include/event2/thread.h /usr/lib64/libevent.so
+	x=$?
+	return $x
+}
+
+# rpath from gettext check
+function pack_ck_rpath {
+	pack_checkfiles /usr/share/gettext/config.rpath
+	x=$?
+	return $x
+}
+
+# openssl cipher check
+function pack_ck_ssl {
+	pack_checkfiles /usr/include/openssl/md5.h
+	x=$?
+	return $x
+}
+
+# python includes check
+function pack_ck_python {
+	pack_checkfiles /usr/bin/python2
+	x=$?
+	return $x
+}
+
+# python includes check
+function pack_ck_pydev {
+	if test -f /usr/include/python2.7/Python.h -o -f /usr/include/python2.6/Python.h; then
+		return 0
+	fi
+	return 1
+}
+
+# python numeric check
+function pack_ck_numpy {
+	pack_checkdirs /usr/include/numpy
+	x=$?
+	return $?
+}
+
+# cython check
+function pack_ck_cython {
+	pack_checkfiles /usr/bin/cython
+	x=$?
+	return $x
+}
+
+# swig 2 check
+function pack_ck_swig {
+	if test -d /usr/share/swig; then
+		if ls /usr/share/swig/2.*/python/cstring.i &> /dev/null; then
+			: echo swig 2 might be ok
+			return 0
+		fi
+		if test -f /etc/toss-release -a -f /usr/share/swig/1.3.40/python/cstring.i; then
+			: echo swig 1.3.40 might be ok
+			return 0
+		fi
+	fi
+
+	return 1
+}
+
+# ibverbs api check
+function pack_ck_verbs {
+	pack_checkfiles /usr/include/infiniband/verbs.h /usr/lib64/libibverbs.so
+	x=$?
+	return $x
+}
+
+# rdma api check
+function pack_ck_rdma_cm {
+	pack_checkfiles /usr/include/rdma/rdma_cma.h /usr/lib64/librdmacm.so
+	x=$?
+	return $x
+}
+
+# genders init scripts check
+function pack_ck_genders {
+	pack_checkfiles /usr/bin/nodeattr /usr/include/gendersplusplus.hpp /usr/include/boost/program_options.hpp /usr/lib64/libboost_program_options.so /usr/include/boost/regex.hpp /usr/lib64/libboost_regex.so
+	x=$?
+	return $x
+}
+
+# We do these to short circuit wasting make dist and configure time on
+# things that rpm Requires/BuildRequires will ultimately catch.
+function pack_prechecks {
+	echo Making cheap checks for prerequisites based on configure options.
+	local bad=0
+	pack_ck_event "$*"
+	x=$?
+	bad=$(( $bad + $x))
+	pack_ck_rpath
+	x=$?
+	bad=$(( $bad + $x))
+	if echo "$*" | grep disable-yaml >/dev/null; then
+		:
+	else
+		pack_ck_yaml
+		x=$?
+	fi
+	bad=$(( $bad + $x))
+	if echo "$*" | grep enable-ovis_auth >/dev/null; then
+		echo Checking some ovis_auth dependencies
+		pack_ck_ssl
+		x=$?
+		bad=$(( $bad + $x))
+	fi
+	if echo "$*" | grep enable-ldms-python >/dev/null; then
+		echo Checking some ldms-python scripting dependencies
+		pack_ck_python
+		x=$?
+		bad=$(( $bad + $x))
+	fi
+	if echo "$*" | grep enable-sysclassib >/dev/null; then
+		echo Checking some sysclassib sampler dependencies
+		pack_ck_verbs
+		x=$?
+		bad=$(( $bad + $x))
+	fi
+	if echo "$*" | grep enable-rdma >/dev/null; then
+		echo Checking some rdma transport dependencies
+		pack_ck_rdma_cm
+		x=$?
+		bad=$(( $bad + $x))
+	fi
+	if echo "$*" | grep enable-genders >/dev/null; then
+		echo Checking some genders-based init script dependencies
+		pack_ck_genders
+		x=$?
+		bad=$(( $bad + $x))
+	fi
+	if echo "$*" | grep enable-swig >/dev/null; then
+		echo Checking some swig dependencies
+		pack_ck_pydev
+		x=$?
+		bad=$(( $bad + $x))
+		pack_ck_swig
+		x=$?
+		bad=$(( $bad + $x))
+	fi
+	if echo "$*" | grep enable-sos >/dev/null; then
+		if echo "$*" | grep enable-python >/dev/null; then
+			echo Checking some sos python ui dependencies
+			pack_ck_cython
+			x=$?
+			bad=$(( $bad + $x))
+			pack_ck_numpy
+			x=$?
+			bad=$(( $bad + $x))
+		fi
+	fi
+	if test "$bad" = "0"; then
+		echo "Looks ok, but configure may still fail for advanced plugins."
+	fi
+	return $bad
+}

@@ -1,0 +1,400 @@
+# Set topdir to be builddir/rpm
+# note this is intentionally ignored by rpmbuild. must use
+# commandline syntax in makefile.am to get this effect.
+#% define _topdir %(echo $PWD)/toss
+# do not set unfascist build
+#%-define _unpackaged_files_terminate_build 0
+#%-define _missing_doc_files_terminate_build 0
+
+%define ldms_all System Environment/Libraries
+%define build_timestamp %(date +"%Y%m%d_%H%M")
+# % global __strip /bin/true
+%global _enable_debug_package 0
+%global debug_package %{nil}
+%global __os_install_post /usr/lib/rpm/brp-compress %{nil}
+%if 0%{?rhel} && 0%{?rhel} <= 6
+%{!?__python2: %global __python2 /opt/python-2.7/bin/python}
+%{!?python2_sitelib: %global python2_sitelib %(%{__python2} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")}
+%{!?python2_sitearch: %global python2_sitearch %(%{__python2} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib(1))")}
+%endif
+
+# Main package
+Summary: OVIS Commands and Libraries
+Name: ovis
+Version: @VERSION@
+Release: 1%{?dist}
+License: GPLv2 or BSD
+Group: %{ldms_all}
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+Source: %{name}-%{version}.tar.gz
+Requires: rpm >= 4.8.0
+Requires: libevent >= 2.0.21
+Requires: libyaml libyaml-devel
+@ENABLE_LDMS_PYTHON_TRUE@Requires: python2
+@ENABLE_PYTHON_TRUE@Requires:Cython
+@ENABLE_SWIG_TRUE@Requires: python2-devel
+@ENABLE_SOS_TRUE@Requires: numpy
+@ENABLE_SSL_TRUE@Requires: openssl
+@ENABLE_LIBGENDERS_TRUE@Requires: boost-regex boost-program-options
+@ENABLE_LIBGENDERS_TRUE@Requires: genders libgenders-devel libgendersplusplus
+
+BuildRequires: gettext-devel gcc glib2-devel
+@ENABLE_DOC_TRUE@BuildRequires: doxygen
+@ENABLE_OVIS_AUTH_TRUE@BuildRequires: openssl-devel
+@ENABLE_SYSCLASSIB_TRUE@BuildRequires: libibverbs-devel
+@ENABLE_RDMA_TRUE@BuildRequires: librdmacm-devel
+BuildRequires: libevent libevent-devel
+BuildRequires: libyaml libyaml-devel
+@ENABLE_SWIG_TRUE@BuildRequires: python2 python2-devel
+@ENABLE_PYTHON_TRUE@BuildRequires: Cython
+@ENABLE_SWIG_TRUE@BuildRequires: swig
+@ENABLE_LIBGENDERS_TRUE@BuildRequires: boost-devel
+@ENABLE_LIBGENDERS_TRUE@BuildRequires: genders libgenders-devel libgendersplusplus
+Url: http://ovis.ca.sandia.gov/
+
+# relocation prefix0 for file installs other than sysconfdir & localstatedir
+Prefix: /usr
+# relocation prefix1 for runtime localstatedir post install hooks
+Prefix: /var
+# relocation prefix2 for runtime sysconfdir post install hooks
+Prefix: /etc
+
+
+%description
+This package provides the OVIS commands and libraries, OVIS apis and transport libraries, and scalable object store libraries.
+Configured with @ac_configure_args@.
+
+
+%prep
+%setup -q
+
+%build
+echo bTMPPATH %{_tmppath}
+rm -rf $RPM_BUILD_ROOT
+echo bBUILDROOT $RPM_BUILD_ROOT
+%configure CFLAGS=-g @ac_configure_args@
+make V=1 -j 16
+
+%install
+echo TMPPATH %{_tmppath}
+echo BUILDROOT $RPM_BUILD_ROOT
+make DESTDIR=${RPM_BUILD_ROOT} V=1 install
+# remove unpackaged files from the buildroot
+rm -f $RPM_BUILD_ROOT%{_libdir}/*.la
+rm -f $RPM_BUILD_ROOT%{_libdir}/ovis-ldms/lib*.la
+# fix in subsequent after sorting use of sysconfdir or share/baler in baler
+@ENABLE_BALER_TRUE@rm -f $RPM_BUILD_ROOT%{_prefix}/etc/ovis/eng-dictionary
+rm $RPM_BUILD_ROOT%{_bindir}/test_*
+rm $RPM_BUILD_ROOT%{_bindir}/ldms_ban.sh
+mv $RPM_BUILD_ROOT%{_docdir}/ovis-ldms-*/* $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}/
+@ENABLE_LIBGENDERS_TRUE@mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/init.d
+@ENABLE_LIBGENDERS_TRUE@mkdir -p $RPM_BUILD_ROOT%{_prefix}/lib/systemd/system
+@ENABLE_LIBGENDERS_TRUE@cp $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}/sample_init_scripts/genders/sysv/etc/init.d/ldms* $RPM_BUILD_ROOT%{_sysconfdir}/init.d/
+@ENABLE_LIBGENDERS_TRUE@cp -ar $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}/sample_init_scripts/genders/systemd/etc/* $RPM_BUILD_ROOT%{_sysconfdir}
+@ENABLE_LIBGENDERS_TRUE@cp -r $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}/sample_init_scripts/genders/systemd/services/ldms*.service $RPM_BUILD_ROOT%{_prefix}/lib/systemd/system
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+%files
+%defattr(-,root,root)
+@ENABLE_BALER_TRUE@%exclude %{_bindir}/bhquery
+%{_libdir}/*
+%{_bindir}/*
+%{_sbindir}/*
+%{_docdir}/%{name}-%{version}/COPYING
+%{_docdir}/%{name}-%{version}/ChangeLog
+%{_docdir}/%{name}-%{version}/AUTHORS
+#end core
+
+# devel
+%package devel
+Summary: LDMS devel package
+Group: %{ldms_grp}
+Requires: ovis = @VERSION@
+%description devel
+This is a development package of Lightweight Distributed Metric System (LDMS).
+Users who want to implement their own sampler or store must install this
+package.
+
+%files devel
+%defattr(-,root,root)
+%{_includedir}/*/*.h
+%{_includedir}/*/*/*.h
+%{_includedir}/ovis-lib-config.h
+%{_includedir}/ovis-ldms-config.h
+#end devel
+
+%package test
+Summary: LDMS test package
+Group: %{ldms_grp}
+Requires: ovis = @VERSION@
+%description test
+This is a collection of test scripts for (LDMS).
+They also serve as examples, but are not usually of interest
+on compute nodes in large clusters.
+
+%files test
+%defattr(-,root,root)
+%{_bindir}/ldms*sh
+#end test
+
+# initscripts
+%package initscripts-base
+Summary: LDMS base initscripts for libgenders control of %{name}
+Group: %{ldms_grp}
+Requires: ovis = @VERSION@
+%description initscripts-base
+This is the support file set for libgenders based booting of LDMS daemons.
+Users normally provide information via /etc/genders (or alternate file)
+to make these scripts operate. With a manually written daemon
+control file, use of libgenders can be bypassed.
+
+%files initscripts-base
+%defattr(-,root,root)
+@ENABLE_BALER_TRUE@%config(noreplace) %{_sysconfdir}/baler/*
+@ENABLE_LIBGENDERS_TRUE@%config(noreplace) %{_sysconfdir}/sysconfig/*
+@ENABLE_LIBGENDERS_TRUE@%post initscripts-base
+@ENABLE_LIBGENDERS_TRUE@varrunscripts="
+@ENABLE_LIBGENDERS_TRUE@$RPM_INSTALL_PREFIX0/bin/ldmsd-wrapper.sh
+@ENABLE_LIBGENDERS_TRUE@$RPM_INSTALL_PREFIX2/sysconfig/ldms.d/ldmsd
+@ENABLE_LIBGENDERS_TRUE@$RPM_INSTALL_PREFIX2/sysconfig/ldms.d/ldms-functions
+@ENABLE_LIBGENDERS_TRUE@$RPM_INSTALL_PREFIX2/sysconfig/ldms.d/ldmsd.local.conf
+@ENABLE_LIBGENDERS_TRUE@"
+@ENABLE_LIBGENDERS_TRUE@# replace /var in /var/run occurences with prefix1 relocation
+@ENABLE_LIBGENDERS_TRUE@if test "$RPM_INSTALL_PREFIX1" != "/var" \
+@ENABLE_LIBGENDERS_TRUE@	-o "/etc" != "$RPM_INSTALL_PREFIX2" \
+@ENABLE_LIBGENDERS_TRUE@	-o "/usr" != "$RPM_INSTALL_PREFIX0"; then
+@ENABLE_LIBGENDERS_TRUE@	for i in $varrunscripts; do
+@ENABLE_LIBGENDERS_TRUE@		if test $i.rpmnew -nt $i; then
+@ENABLE_LIBGENDERS_TRUE@			j=$i.rpmnew
+@ENABLE_LIBGENDERS_TRUE@		else
+@ENABLE_LIBGENDERS_TRUE@			j=$i
+@ENABLE_LIBGENDERS_TRUE@		fi
+@ENABLE_LIBGENDERS_TRUE@		if grep LDMS_POST_INSTALLED=0 $j >/dev/null; then
+@ENABLE_LIBGENDERS_TRUE@			sed -i -e "s%/var%$RPM_INSTALL_PREFIX1%g" \
+@ENABLE_LIBGENDERS_TRUE@				-e "s%//run%/run%g" \
+@ENABLE_LIBGENDERS_TRUE@				-e "s%/etc%$RPM_INSTALL_PREFIX2%g" \
+@ENABLE_LIBGENDERS_TRUE@				-e "s%/usr%$RPM_INSTALL_PREFIX0%g" \
+@ENABLE_LIBGENDERS_TRUE@				-e "s%$RPM_INSTALL_PREFIX0/bin/test%/usr/bin/test%g" \
+@ENABLE_LIBGENDERS_TRUE@				-e "s%$RPM_INSTALL_PREFIX0/lib64/ovis-libevent2/lib64/%/usr/lib64/ovis-libevent2/lib64/%g" \
+@ENABLE_LIBGENDERS_TRUE@				-e "s%LDMS_POST_INSTALLED=0%LDMS_POST_INSTALLED=1%g" \
+@ENABLE_LIBGENDERS_TRUE@				$j
+@ENABLE_LIBGENDERS_TRUE@		fi
+@ENABLE_LIBGENDERS_TRUE@	done
+@ENABLE_LIBGENDERS_TRUE@fi
+#end initscripts-base
+
+@ENABLE_LIBGENDERS_TRUE@%package initscripts-systemd
+@ENABLE_LIBGENDERS_TRUE@Summary: LDMS systemd scripts for libgenders control of %{name}
+@ENABLE_LIBGENDERS_TRUE@Group: %{ldms_grp}
+@ENABLE_LIBGENDERS_TRUE@Requires: ovis = @VERSION@ ovis-initscripts-base
+@ENABLE_LIBGENDERS_TRUE@%description initscripts-systemd
+@ENABLE_LIBGENDERS_TRUE@This is the libgenders based systemd scripts for LDMS daemons.
+@ENABLE_LIBGENDERS_TRUE@Users normally provide information via /etc/genders (or alternate file)
+@ENABLE_LIBGENDERS_TRUE@to make these scripts operate. They are required to fail out of the box.
+@ENABLE_LIBGENDERS_TRUE@
+@ENABLE_LIBGENDERS_TRUE@%files initscripts-systemd
+@ENABLE_LIBGENDERS_TRUE@%defattr(-,root,root)
+@ENABLE_LIBGENDERS_TRUE@%config(noreplace) %{_prefix}/lib/systemd/system/ldmsd*.service
+@ENABLE_LIBGENDERS_TRUE@%config(noreplace) %{_bindir}/ldmsd-pre-systemd
+@ENABLE_LIBGENDERS_TRUE@%post initscripts-systemd
+@ENABLE_LIBGENDERS_TRUE@varrunscripts="
+@ENABLE_LIBGENDERS_TRUE@$RPM_INSTALL_PREFIX0/bin/ldmsd-pre-systemd
+@ENABLE_LIBGENDERS_TRUE@$RPM_INSTALL_PREFIX0/lib/systemd/system/ldmsd.service
+@ENABLE_LIBGENDERS_TRUE@$RPM_INSTALL_PREFIX0/lib/systemd/system/ldmsd@.service
+@ENABLE_LIBGENDERS_TRUE@"
+@ENABLE_LIBGENDERS_TRUE@# replace /var in /var/run occurences with prefix1 relocation
+@ENABLE_LIBGENDERS_TRUE@if test "$RPM_INSTALL_PREFIX1" != "/var" \
+@ENABLE_LIBGENDERS_TRUE@	-o "/etc" != "$RPM_INSTALL_PREFIX2" \
+@ENABLE_LIBGENDERS_TRUE@	-o "/usr" != "$RPM_INSTALL_PREFIX0"; then
+@ENABLE_LIBGENDERS_TRUE@	for i in $varrunscripts; do
+@ENABLE_LIBGENDERS_TRUE@		if test $i.rpmnew -nt $i; then
+@ENABLE_LIBGENDERS_TRUE@			j=$i.rpmnew
+@ENABLE_LIBGENDERS_TRUE@		else
+@ENABLE_LIBGENDERS_TRUE@			j=$i
+@ENABLE_LIBGENDERS_TRUE@		fi
+@ENABLE_LIBGENDERS_TRUE@		if grep LDMS_POST_INSTALLED=0 $j >/dev/null; then
+@ENABLE_LIBGENDERS_TRUE@			sed -i \
+@ENABLE_LIBGENDERS_TRUE@				-e "s%/var%$RPM_INSTALL_PREFIX1%g" \
+@ENABLE_LIBGENDERS_TRUE@				-e "s%//run%/run%g" \
+@ENABLE_LIBGENDERS_TRUE@				-e "s%/etc%$RPM_INSTALL_PREFIX2%g" \
+@ENABLE_LIBGENDERS_TRUE@				-e "s%/usr%$RPM_INSTALL_PREFIX0%g" \
+@ENABLE_LIBGENDERS_TRUE@				-e "s%$RPM_INSTALL_PREFIX0/bin/test%/usr/bin/test%g" \
+@ENABLE_LIBGENDERS_TRUE@				-e "s%$RPM_INSTALL_PREFIX0/lib64/ovis-libevent2/lib64/%/usr/lib64/ovis-libevent2/lib64/%g" \
+@ENABLE_LIBGENDERS_TRUE@				-e "s%LDMS_POST_INSTALLED=0%LDMS_POST_INSTALLED=1%g" \
+@ENABLE_LIBGENDERS_TRUE@				$j
+@ENABLE_LIBGENDERS_TRUE@		fi
+@ENABLE_LIBGENDERS_TRUE@	done
+@ENABLE_LIBGENDERS_TRUE@fi
+@ENABLE_LIBGENDERS_TRUE@#end initscripts-systemd
+
+
+@ENABLE_LIBGENDERS_TRUE@# initscripts-sysv
+@ENABLE_LIBGENDERS_TRUE@%package initscripts-sysv
+@ENABLE_LIBGENDERS_TRUE@Summary: LDMS sysv init scripts for libgenders control of %{name}
+@ENABLE_LIBGENDERS_TRUE@Group: %{ldms_grp}
+@ENABLE_LIBGENDERS_TRUE@Requires: ovis = @VERSION@ ovis-initscripts-base
+@ENABLE_LIBGENDERS_TRUE@%description initscripts-sysv
+@ENABLE_LIBGENDERS_TRUE@This is the libgenders based sysv init scripts for LDMS daemons.
+@ENABLE_LIBGENDERS_TRUE@Users must provide information via /etc/genders (or alternate file)
+@ENABLE_LIBGENDERS_TRUE@to make these scripts operate. They are required to fail out of the box.
+
+@ENABLE_LIBGENDERS_TRUE@%files initscripts-sysv
+@ENABLE_LIBGENDERS_TRUE@%defattr(-,root,root)
+@ENABLE_LIBGENDERS_TRUE@%config(noreplace) %{_sysconfdir}/init.d/ldms*
+@ENABLE_LIBGENDERS_TRUE@%config(noreplace) %{_bindir}/ldmsd-pre-sysvinit
+@ENABLE_LIBGENDERS_TRUE@%post initscripts-sysv
+@ENABLE_LIBGENDERS_TRUE@varrunscripts="
+@ENABLE_LIBGENDERS_TRUE@$RPM_INSTALL_PREFIX0/bin/ldmsd-pre-sysvinit
+@ENABLE_LIBGENDERS_TRUE@$RPM_INSTALL_PREFIX2/init.d/ldmsd
+@ENABLE_LIBGENDERS_TRUE@$RPM_INSTALL_PREFIX2/init.d/ldmsd.template
+@ENABLE_LIBGENDERS_TRUE@"
+@ENABLE_LIBGENDERS_TRUE@# replace /var in /var/run occurences with prefix1 relocation
+@ENABLE_LIBGENDERS_TRUE@if test "$RPM_INSTALL_PREFIX1" != "/var" \
+@ENABLE_LIBGENDERS_TRUE@	-o "/etc" != "$RPM_INSTALL_PREFIX2" \
+@ENABLE_LIBGENDERS_TRUE@	-o "/usr" != "$RPM_INSTALL_PREFIX0"; then
+@ENABLE_LIBGENDERS_TRUE@	for i in $varrunscripts; do
+@ENABLE_LIBGENDERS_TRUE@		if test $i.rpmnew -nt $i; then
+@ENABLE_LIBGENDERS_TRUE@			j=$i.rpmnew
+@ENABLE_LIBGENDERS_TRUE@		else
+@ENABLE_LIBGENDERS_TRUE@			j=$i
+@ENABLE_LIBGENDERS_TRUE@		fi
+@ENABLE_LIBGENDERS_TRUE@		if grep LDMS_POST_INSTALLED=0 $j >/dev/null; then
+@ENABLE_LIBGENDERS_TRUE@			sed -i \
+@ENABLE_LIBGENDERS_TRUE@				-e "s%/var%$RPM_INSTALL_PREFIX1%g" \
+@ENABLE_LIBGENDERS_TRUE@				-e "s%//run%/run%g" \
+@ENABLE_LIBGENDERS_TRUE@				-e "s%/etc%$RPM_INSTALL_PREFIX2%g" \
+@ENABLE_LIBGENDERS_TRUE@				-e "s%/usr%$RPM_INSTALL_PREFIX0%g" \
+@ENABLE_LIBGENDERS_TRUE@				-e "s%$RPM_INSTALL_PREFIX0/bin/test%/usr/bin/test%g" \
+@ENABLE_LIBGENDERS_TRUE@				-e "s%$RPM_INSTALL_PREFIX0/lib64/ovis-libevent2/lib64/%/usr/lib64/ovis-libevent2/lib64/%g" \
+@ENABLE_LIBGENDERS_TRUE@				-e "s%LDMS_POST_INSTALLED=0%LDMS_POST_INSTALLED=1%g" \
+@ENABLE_LIBGENDERS_TRUE@				$j
+@ENABLE_LIBGENDERS_TRUE@		fi
+@ENABLE_LIBGENDERS_TRUE@	done
+@ENABLE_LIBGENDERS_TRUE@fi
+@ENABLE_LIBGENDERS_TRUE@#end initscripts-base
+
+
+%package doc
+Summary: Documentation files for %{name}
+Group: %{ldms_all}
+## Requires: %{name}-devel = %{version}-%{release}
+%description doc
+Doxygen files for ovis package.
+%files doc
+%defattr(-,root,root)
+%{_mandir}/*/*
+%{_datadir}/doc/%{name}-%{version}
+## %{_datadir}/doc/ovis-lib-%{version}
+@ENABLE_SOS_TRUE@# %{_datadir}/doc/sos
+@ENABLE_BALER_TRUE@# %{_datadir}/doc/baler
+## %%docdir %{_defaultdocdir}
+%docdir /usr/share/doc
+%post doc
+varrunmans="
+$RPM_INSTALL_PREFIX0/share/man/man5/ldms-attributes.5
+$RPM_INSTALL_PREFIX0/share/man/man8/ldmsd-genders.8
+$RPM_INSTALL_PREFIX0/share/man/man8/ldmsd.8
+"
+for i in $varrunmans; do
+	$RPM_INSTALL_PREFIX/bin/ldms-manpatch.sh $i \
+		-e "s%/var%$RPM_INSTALL_PREFIX1%g" \
+		-e "s%//run%/run%g" \
+		-e "s%/usr%$RPM_INSTALL_PREFIX0%g" \
+		-e "s%$RPM_INSTALL_PREFIX0/bin/test%/usr/bin/test%g" \
+		-e "s%$RPM_INSTALL_PREFIX0/lib64/ovis-libevent2/lib64/%/usr/lib64/ovis-libevent2/lib64/%g" \
+		-e "s%/etc%$RPM_INSTALL_PREFIX2%g"
+done
+
+%package python2
+Summary: Python files for LDMS and baler
+%description python2
+Python files for LDMS
+%files python2
+%defattr(-,root,root)
+@ENABLE_SWIG_TRUE@%{_prefix}/lib/python2.7/site-packages/ovis_lib
+@ENABLE_SWIG_TRUE@%{_prefix}/lib/python2.7/site-packages/ovis_ldms
+@ENABLE_LDMS_PYTHON_TRUE@%{_prefix}/lib/python2.7/site-packages/ldmsd
+@ENABLE_PYTHON_TRUE@%{_prefix}/lib/python2.7/site-packages/sosdb
+@ENABLE_BALER_TRUE@%{_prefix}/lib/python2.7/site-packages/baler
+@ENABLE_BALER_TRUE@%{_prefix}/lib/python2.7/site-packages/abhttp
+#%%{python2_sitelib}/*
+#end python2
+# see https://fedoraproject.org/wiki/Packaging:Python_Old
+# and https://fedoraproject.org/wiki/Packaging:Python
+
+%package sosdb
+Summary: SOS database package
+Group: %{ldms_grp}
+Requires: ovis >= 3.0.0
+%description sosdb
+This is a collection of SOS database utilities.
+
+%files sosdb
+%defattr(-,root,root)
+%{_bindir}/sos_*
+@ENABLE_PYTHON_TRUE@%{_prefix}/lib/python2.7/site-packages/sosdb
+#end test
+
+%post
+for i in $RPM_INSTALL_PREFIX/bin/envldms.sh \
+	$RPM_INSTALL_PREFIX/bin/ldms*.sh \
+	$RPM_INSTALL_PREFIX/lib64/ovis-*configvars.sh; do
+	sed -i \
+		-e "s%BUILDDIR=/usr%BUILDDIR=$RPM_INSTALL_PREFIX%g" \
+		-e "s%exec_prefix=/usr%exec_prefix=$RPM_INSTALL_PREFIX%g" \
+		-e "s%libdir=/usr%libdir=$RPM_INSTALL_PREFIX%g" \
+		-e "s%%prefix=/usr%%prefix=$RPM_INSTALL_PREFIX%g" \
+		-e "s%$RPM_INSTALL_PREFIX0/bin/test%/usr/bin/test%g" \
+		-e "s%$RPM_INSTALL_PREFIX0/lib64/ovis-libevent2/lib64/%/usr/lib64/ovis-libevent2/lib64/%g" \
+		$i
+done
+
+%post test
+for i in $RPM_INSTALL_PREFIX/bin/ldms*.sh; do
+	sed -i \
+		-e "s%BUILDDIR=/usr%BUILDDIR=$RPM_INSTALL_PREFIX%g" \
+		-e "s%exec_prefix=/usr%exec_prefix=$RPM_INSTALL_PREFIX%g" \
+		-e "s%libdir=/usr%libdir=$RPM_INSTALL_PREFIX%g" \
+		-e "s%%prefix=/usr%%prefix=$RPM_INSTALL_PREFIX%g" \
+		-e "s%$RPM_INSTALL_PREFIX0/bin/test%/usr/bin/test%g" \
+		-e "s%$RPM_INSTALL_PREFIX0/lib64/ovis-libevent2/lib64/%/usr/lib64/ovis-libevent2/lib64/%g" \
+		$i
+done
+
+%post python2
+@ENABLE_BALER_TRUE@rm -f $RPM_INSTALL_PREFIX/bin/bhquery
+@ENABLE_BALER_TRUE@ln -s $RPM_INSTALL_PREFIX/lib/python*/site-packages/baler/bquery.py $RPM_INSTALL_PREFIX/bin/bhquery
+
+%changelog
+* Wed Mar 29 2017 Ben Allan <baallan@sandia.gov> 3.4.0-1
+Update package refactorization
+* Tue Mar 14 2017 Ben Allan <baallan@sandia.gov> 3.3.1-2
+Update package refactorization
+* Tue Feb 21 2017 Ben Allan <baallan@sandia.gov> 3.3.1-1
+Update for gender feature.
+* Thu Aug 25 2016 Ben Allan <baallan@sandia.gov> 3.0.0-21
+Update for baler features.
+* Mon Mar 14 2016 Ben Allan <baallan@sandia.gov> 3.0.0-6
+Update for cray/sos features.
+* Tue Mar 01 2016 Ben Allan <baallan@sandia.gov> 3.0.0-3
+ported for LANL monitoring server.
+* Tue Nov 03 2015 Ben Allan <baallan@sandia.gov> 3.0.0-2
+ported for LANL monitoring server.
+* Tue Oct 13 2015 Ben Allan <baallan@sandia.gov> 3.0.0-1
+update to v3.
+* Tue Aug 25 2015 Ben Allan <baallan@sandia.gov> 2.4.5-1
+update to latest upstream.
+* Wed Jul 29 2015 Ben Allan <baallan@sandia.gov> 2.4.4-1
+update to latest upstream.
+* Thu Jun 18 2015 Ben Allan <baallan@sandia.gov> 2.4.3-1
+packaging of initscripts for ldmsd/ldms-aggd.
+* Sat May 23 2015 Ben Allan <baallan@sandia.gov> 2.4.2-1
+update to latest upstream.
+* Thu Apr 23 2015 Ben Allan <baallan@sandia.gov> 2.4.1-1
+packaging with sysclassib and procstatutil2 enabled.
+* Wed Feb 18 2015 Ben Allan <baallan@sandia.gov> 2.4.0-1
+packaging with separate libevent
+* Mon Sep 15 2014 Ben Allan <baallan@sandia.gov> 2.2.0-1
+all-in-one packaging w/libevent

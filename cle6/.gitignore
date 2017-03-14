@@ -1,0 +1,6 @@
+*.spec
+*.tar
+*.gz
+ovis
+sos
+*log

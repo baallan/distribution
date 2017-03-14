@@ -1,0 +1,207 @@
+#!/bin/bash
+#
+#
+packing=rhel7.unstable
+ovis_branch=master
+sos_branch=master
+NetworkRequires=gitlab.opengridcomputing.com
+SOSREPO=gitlab@gitlab.opengridcomputing.com:tom/SOS.git
+OVISREPO=gitlab@gitlab.opengridcomputing.com:baallan/ovis.git
+
+. ../support/package-functions
+
+prefix=/usr
+PACK_OPTS="
+--disable-rpath
+--disable-static
+--prefix=$prefix
+--with-pkglibdir=ovis-ldms
+"
+DOC_OPTS="
+--enable-doc
+--enable-doc-html
+"
+SECURITY_OPTS="
+--enable-ovis_auth
+--enable-ssl
+"
+NETWORK_OPTS="
+--enable-ovis_event
+--enable-zap
+--enable-sock
+--disable-rdma
+--disable-mmap
+"
+CRAY_LOCATIONS=""
+
+IFACE_OPTS="
+--enable-swig
+--disable-readline
+--enable-ldms-python
+--disable-libgenders
+"
+BALER_OPTS="
+--enable-baler
+"
+STORE_OPTS="
+--enable-sos
+--enable-flatfile
+--enable-csv
+--enable-store
+--disable-rabbitv3
+"
+SAMPLER_OPTS="
+--disable-cray_power_sampler
+--disable-cray_system_sampler
+--disable-aries-gpcdr
+--disable-gpcdlocal
+--disable-aries-mmr
+--disable-ugni
+--disable-perfevent
+--disable-papi
+--disable-procdiskstats
+--disable-atasmart
+--disable-hadoop
+--disable-generic_sampler
+--disable-switchx
+--disable-sysclassib
+--enable-perf
+--disable-jobid
+--enable-sensors
+--enable-array_example
+--enable-procinterrupts
+--enable-procnetdev
+--enable-procnfs
+--enable-procsensors
+--enable-procstat
+--enable-vmstat
+--enable-meminfo
+--disable-lustre
+"
+allconfig="$PACK_OPTS $SECURITY_OPTS $NETWORK_OPTS $IFACE_OPTS $BALER_OPTS $STORE_OPTS $SAMPLER_OPTS $CRAY_LOCATIONS"
+
+if ! pack_prechecks "$allconfig"; then
+	echo "Check dependencies listed above, install needed packages, and try again"
+	exit 1
+fi
+
+dn=$(pwd)
+bn=$(basename $dn)
+if test "$bn" = "$packing" -a -f ovis.spec.in; then
+	: in the right place
+else
+	echo This must be run from $packing, which should be clean and at any rate will be overwritten.
+	exit 1
+fi
+
+specdir=$dn
+SOSTAR=sos.tar
+/bin/rm -rf ovis
+if ! git clone $OVISREPO ovis; then
+	echo cannot checkout ovis.
+	exit 1
+fi
+
+cd ovis
+if ! git checkout $ovis_branch; then
+	echo cannot checkout ovis branch $ovis_branch.
+	exit 1
+fi
+if test -n "$SOSREPO"; then
+	(cd .. /bin/rm -rf sos ;
+	if ! git clone $SOSREPO sos; then
+		echo cannot checkout SOS.
+		exit 1
+	else
+		(cd sos; if ! git checkout $sos_branch; then
+			echo "cannot checkout sos branch $sos_branch";
+			exit 1
+		fi )
+		tar cf $SOSTAR sos
+	fi
+	/bin/rm -rf sos
+	if ! test -f ../$SOSTAR; then
+		echo archive $SOSTAR must be next to source tree.
+		exit 1
+	fi
+	)
+else
+	git submodule init sos && git submodule update sos && tar cf ../$SOSTAR sos
+fi
+
+if ! test -f ../$SOSTAR; then
+	echo failed to download sos
+	exit 1
+fi
+VERSION=$(pack_get_ac_version configure.ac)
+PACKAGE=$(pack_get_ac_name configure.ac)
+# Find SHA of latest checkin someone tagged
+COMMIT_ID="$(git log -1 --pretty="%H")"
+BASE_COMMIT_ID="$(git rev-parse $ovis_branch)"
+
+# Get most recent tag id for this branch
+TAG_ID="$(git describe --tags --abbrev=0)"
+TARGET=${PACKAGE}-${VERSION}.tar
+REPO_DIR=`pwd`
+OUTPUT_DIR=`pwd`/Tars
+# Create output dir
+mkdir -p $OUTPUT_DIR
+# populate outdir inputs
+git archive --prefix=${PACKAGE=}-${VERSION}/ $COMMIT_ID --format=tar --output=${OUTPUT_DIR}/$TARGET
+sleep 0.1
+cp ../$SOSTAR $OUTPUT_DIR
+
+cd $OUTPUT_DIR
+
+# Untar archive
+echo "Untarring archive"
+tar xf $TARGET && \
+(cd ${PACKAGE}-${VERSION} && \
+tar xf ../$SOSTAR && \
+mkdir -p gpcd-support/m4 && \
+./autogen.sh)
+if ! test -f ${PACKAGE}-${VERSION}/configure; then
+	echo "unable to generate ovis build files"
+	exit 1
+fi
+
+# Tar back up excluding unwanted files and dirs
+echo "tarring archive with excludes from "
+echo "$REPO_DIR/util/tar-excludes.txt"
+TAR_OPTS="-X $REPO_DIR/util/tar-excludes.txt"
+tar czf $TARGET.gz $TAR_OPTS ${PACKAGE}-${VERSION}
+
+echo "Relocating cruft"
+rm -rf old
+mkdir old
+mv -f ${PACKAGE}-${VERSION} $TARGET $SOSTARGET old
+specfile=tmp-ovis-${packing}.spec
+tar zxf $TARGET.gz && \
+cd ${PACKAGE}-${VERSION} && \
+echo "================ configure for $packing rpms =============" && \
+./configure CC=gcc CXX=g++ $allconfig && \
+echo "============================= make $packing rpms =============" && \
+make dist-gzip && \
+mkdir -p $packing/{BUILD,RPMS,SOURCES,SPECS,SRPMS} && \
+cp $TARGET.gz $packing/SOURCES && \
+./config.status --file=-:$specdir/ovis.spec.in | \
+./ldms/config.status --file=-:- | \
+./lib/config.status --file=$specdir/tmp-ovis-${packing}.spec:- && \
+if test -f baler/config.status; then
+	./baler/config.status --file=$specdir/baler-ovis-${packing}.spec:$specdir/tmp-ovis-${packing}.spec
+	specfile=baler-ovis-${packing}.spec
+fi && \
+if test -f sos/config.status; then
+	./sos/config.status --file=$specdir/ovis-${packing}.spec:$specdir/$specfile
+	specfile=ovis-${packing}.spec
+fi && \
+rpmbuild -v --define "_topdir `pwd`/$packing" -ba $specdir/$specfile && \
+touch completed
+if ! test -f completed; then
+	echo FAIL
+else
+	echo PASS
+	cd $dn
+	echo the droids you seek may be:
+	find . -name '*.rpm'
+fi
