@@ -6,7 +6,7 @@ ovis_branch=OVIS-3.4
 sos_branch=master
 NetworkRequires=github.com
 #SOSREPO=gitlab@gitlab.opengridcomputing.com:tom/SOS.git
-OVISREPO=git@github.com:ovis-hpc/ovis.git
+OVISREPO=https://github.com/ovis-hpc/ovis.git
 
 . ../support/package-functions
 
