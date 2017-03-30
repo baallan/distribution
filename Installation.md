@@ -6,7 +6,11 @@ Custom builds from source to enable these features are possible but are not deta
 ## TOSS 3
 
 Supported features: LDMS, Baler, SOS database, LDMS SOS storage plugin, genders, Infinband, RDMA, Lustre, Slurm jobid collection, Python library wrappers.
+
 Unsupported features: SOS Python interfaces. (Cython lacking)
+
+Relocations available (specify identical relocations to all packages when installing):
+/var, /etc, /usr. --relocate is supported and --prefix is not.
 
 Recommended rpms for compute nodes:
 * ovis
@@ -25,7 +29,11 @@ Recommended additional rpms for storage hosts:
 ## TOSS 2
 
 Supported features: LDMS, SOS database, LDMS SOS storage plugin, genders, Infinband, RDMA, Lustre, Slurm jobid collection.
+
 Unsupported features: Baler, SOS Python interfaces, Python library wrappers. (Python 2.7, Cython lacking)
+
+Relocations available (specify identical relocations to all packages when installing):
+/var, /etc, /usr. --relocate is supported and --prefix is not.
 
 Recommended rpms for compute nodes:
 * ovis
@@ -48,7 +56,11 @@ Stable RPMS have not been released yet.
 ## RHEL7
 
 Supported features: LDMS, Baler, SOS database, LDMS SOS storage plugin, Python library wrappers.
+
 Unsupported features: genders, Infinband, RDMA, Lustre, Slurm jobid collection.
+
+Relocations available (but not recommended) when not using yum are:
+/var, /etc, /usr. --relocate is supported and --prefix is not.
 
 Recommended rpms for workstations:
 * ovis
