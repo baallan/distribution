@@ -26,6 +26,9 @@ If successful, this will get you a list of rpms for the latest stable public rel
 ## Installation
 See the Installation.md file for RPM usage guidance.
 
+## What is new
+See v2Comparison.md for info on how the current release compares to LDMS v2.
+
 ## Making test packages
 For any platform, there may also be a $platform.unstable/ directory containing development, test, and historical builds. Third parties should not attempt to build these unstable packages.
 These will be under numerous names. There will often be a **firerpms** script which combines the most recent development sources. In many cases the repositories used will require special access privileges.
