@@ -25,3 +25,5 @@ Removed features:
  * Convert your pipeline programs to follow file or fifo.
 
 For additional details, see the man pages.
+
+TOSS users in particular will want to see man pages ldmsd-genders and ldms-attributes.

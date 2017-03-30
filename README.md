@@ -24,10 +24,10 @@ Clone this repository to a scratch directory, go to the directory of interest, a
 If successful, this will get you a list of rpms for the latest stable public release on that platform. The rpms are relocatable, which is at variance with most Linux distribution's standard policies.
 
 ## Installation
-See the Installation.md file for RPM usage guidance.
+See the [Installation.md](Installation.md) file for RPM usage guidance.
 
 ## What is new
-See v2Comparison.md for info on how the current release compares to LDMS v2.
+See [v2Comparison.md](v2Comparison.md) for info on how the current release compares to LDMS v2.
 
 ## Making test packages
 For any platform, there may also be a $platform.unstable/ directory containing development, test, and historical builds. Third parties should not attempt to build these unstable packages.
