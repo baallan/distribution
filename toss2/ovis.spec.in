@@ -37,12 +37,15 @@ Requires: libyaml libyaml-devel
 @ENABLE_SSL_TRUE@Requires: openssl
 @ENABLE_LIBGENDERS_TRUE@Requires: boost-regex boost-program-options
 @ENABLE_LIBGENDERS_TRUE@Requires: genders
+@ENABLE_SYSCLASSIB_TRUE@Requires: libibmad libibumad
+@ENABLE_RDMA_TRUE@Requires: librdmacm libibverbs
 
 BuildRequires: gettext-devel gcc glib2-devel
 @ENABLE_DOC_TRUE@BuildRequires: doxygen
 @ENABLE_OVIS_AUTH_TRUE@BuildRequires: openssl-devel
 @ENABLE_SYSCLASSIB_TRUE@BuildRequires: libibverbs-devel
-@ENABLE_RDMA_TRUE@BuildRequires: librdmacm-devel
+@ENABLE_RDMA_TRUE@BuildRequires: librdmacm-devel libibverbs-devel
+@ENABLE_SYSCLASSIB_TRUE@BuildRequires: libibmad libibmad-devel libibumad libibumad-devel
 BuildRequires: ovis-libevent2-devel
 BuildRequires: libyaml libyaml-devel
 @ENABLE_SWIG_TRUE@BuildRequires: python python-devel
@@ -61,7 +64,7 @@ Prefix: /etc
 
 
 %description
-This package provides the OVIS commands and libraries, OVIS apis and transport libraries, and scalable object store libraries.
+This package provides the OVIS commands and libraries, OVIS apis and transport libraries, and scalable object store libraries for TOSS 2.
 Configured with @ac_configure_args@.
 
 

@@ -37,12 +37,15 @@ Requires: libyaml libyaml-devel
 @ENABLE_SSL_TRUE@Requires: openssl
 @ENABLE_LIBGENDERS_TRUE@Requires: boost-regex boost-program-options
 @ENABLE_LIBGENDERS_TRUE@Requires: genders
+@ENABLE_SYSCLASSIB_TRUE@Requires: libibmad libibumad
+@ENABLE_RDMA_TRUE@Requires: librdmacm libibverbs
 
 BuildRequires: gettext-devel gcc glib2-devel
 @ENABLE_DOC_TRUE@BuildRequires: doxygen
 @ENABLE_OVIS_AUTH_TRUE@BuildRequires: openssl-devel
 @ENABLE_SYSCLASSIB_TRUE@BuildRequires: libibverbs-devel
-@ENABLE_RDMA_TRUE@BuildRequires: librdmacm-devel
+@ENABLE_RDMA_TRUE@BuildRequires: librdmacm-devel libibverbs-devel
+@ENABLE_SYSCLASSIB_TRUE@BuildRequires: libibmad libibmad-devel libibumad libibumad-devel
 BuildRequires: libevent libevent-devel
 BuildRequires: libyaml libyaml-devel
 @ENABLE_SWIG_TRUE@BuildRequires: python2 python2-devel
@@ -105,6 +108,14 @@ rm -rf $RPM_BUILD_ROOT
 %{_docdir}/%{name}-%{version}/COPYING
 %{_docdir}/%{name}-%{version}/ChangeLog
 %{_docdir}/%{name}-%{version}/AUTHORS
+%exclude %{_bindir}/ldms-py*sh
+@ENABLE_SOS_TRUE@%exclude %{_libdir}/libkey_*
+@ENABLE_SOS_TRUE@%exclude %{_libdir}/libidx_*
+@ENABLE_SOS_TRUE@%exclude %{_bindir}/sos_*
+@ENABLE_SOS_TRUE@%exclude %{_libdir}/libsos*
+@ENABLE_SOS_TRUE@%exclude %{_libdir}/libods*
+@ENABLE_SOS_TRUE@%exclude %{_libdir}/ovis-ldms/libstore_sos*
+@ENABLE_SOS_TRUE@%exclude %{_sbindir}/ldmsd_sos_init
 #end core
 
 # devel
@@ -136,7 +147,7 @@ on compute nodes in large clusters.
 
 %files test
 %defattr(-,root,root)
-%{_bindir}/ldms*sh
+%{_bindir}/ldms-py*sh
 #end test
 
 # initscripts
@@ -308,7 +319,7 @@ for i in $varrunmans; do
 done
 
 %package python2
-Summary: Python files for LDMS and baler
+Summary: Python files for LDMS, SOS, and baler
 %description python2
 Python files for LDMS
 %files python2
@@ -324,18 +335,24 @@ Python files for LDMS
 # see https://fedoraproject.org/wiki/Packaging:Python_Old
 # and https://fedoraproject.org/wiki/Packaging:Python
 
-%package sosdb
-Summary: SOS database package
-Group: %{ldms_grp}
-Requires: ovis >= 3.0.0
-%description sosdb
-This is a collection of SOS database utilities.
-
-%files sosdb
-%defattr(-,root,root)
-%{_bindir}/sos_*
-@ENABLE_PYTHON_TRUE@%{_prefix}/lib/python2.7/site-packages/sosdb
-#end test
+@ENABLE_SOS_TRUE@%package sosdb
+@ENABLE_SOS_TRUE@Summary: SOS database package
+@ENABLE_SOS_TRUE@Group: %{ldms_grp}
+@ENABLE_SOS_TRUE@Requires: ovis >= 3.0.0
+@ENABLE_SOS_TRUE@%description sosdb
+@ENABLE_SOS_TRUE@This is a collection of SOS database utilities for LDMS.
+@ENABLE_SOS_TRUE@
+@ENABLE_SOS_TRUE@%files sosdb
+@ENABLE_SOS_TRUE@%defattr(-,root,root)
+@ENABLE_SOS_TRUE@%{_bindir}/sos_*
+@ENABLE_SOS_TRUE@%{_sbindir}/ldmsd_sos_init
+@ENABLE_SOS_TRUE@%{_libdir}/libkey_*
+@ENABLE_SOS_TRUE@%{_libdir}/libsos*
+@ENABLE_SOS_TRUE@%{_libdir}/libods*
+@ENABLE_SOS_TRUE@%{_libdir}/libidx_*
+@ENABLE_SOS_TRUE@%{_libdir}/ovis-ldms/libstore_sos*
+@ENABLE_SOS_TRUE@@ENABLE_PYTHON_TRUE@%{_prefix}/lib/python2.7/site-packages/sosdb
+@ENABLE_SOS_TRUE@#end sosdb
 
 %post
 for i in $RPM_INSTALL_PREFIX/bin/envldms.sh \
@@ -352,7 +369,7 @@ for i in $RPM_INSTALL_PREFIX/bin/envldms.sh \
 done
 
 %post test
-for i in $RPM_INSTALL_PREFIX/bin/ldms*.sh; do
+for i in $RPM_INSTALL_PREFIX/bin/ldms-py*.sh; do
 	sed -i \
 		-e "s%BUILDDIR=/usr%BUILDDIR=$RPM_INSTALL_PREFIX%g" \
 		-e "s%exec_prefix=/usr%exec_prefix=$RPM_INSTALL_PREFIX%g" \
