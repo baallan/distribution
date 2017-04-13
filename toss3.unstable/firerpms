@@ -2,11 +2,11 @@
 #
 #
 packing=toss3.unstable
-ovis_branch=master
+ovis_branch=OVIS-3.4
 sos_branch=master
-NetworkRequires=gitlab.opengridcomputing.com
-SOSREPO=gitlab@gitlab.opengridcomputing.com:tom/SOS.git
-OVISREPO=gitlab@gitlab.opengridcomputing.com:ovis/ovis.git
+NetworkRequires=github.com
+#SOSREPO=gitlab@gitlab.opengridcomputing.com:tom/SOS.git
+OVISREPO=https://github.com/ovis-hpc/ovis.git
 
 if test -n "$MODULEPATH"; then
 	module purge
@@ -94,24 +94,13 @@ bn=$(basename $dn)
 if test "$bn" = "$packing" -a -f ovis.spec.in; then
 	: in the right place
 else
-        echo This must be run from $packing, which should be clean and at any rate will be overwritten.
-        exit 1
+	echo This must be run from $packing, which should be clean and at any rate will be overwritten.
+	exit 1
 fi
 
 specdir=$dn
 SOSTAR=sos.tar
-/bin/rm -rf sos
-if ! git clone $SOSREPO sos; then
-	echo cannot checkout SOS.
-	exit 1
-else
-	(cd sos; if ! git checkout $sos_branch; then
-		echo "cannot checkout sos branch $sos_branch";
-		exit 1
-	fi )
-	tar cf $SOSTAR sos
-fi
-/bin/rm -rf sos
+
 /bin/rm -rf ovis
 if ! git clone $OVISREPO ovis; then
 	echo cannot checkout ovis.
@@ -123,6 +112,28 @@ if ! git checkout $ovis_branch; then
 	echo cannot checkout ovis branch $ovis_branch.
 	exit 1
 fi
+if test -n "$SOSREPO"; then
+	(cd .. ; /bin/rm -rf sos ;
+	if ! git clone $SOSREPO sos; then
+		echo cannot checkout SOS.
+		exit 1
+	else
+		(cd sos; if ! git checkout $sos_branch; then
+			echo "cannot checkout sos branch $sos_branch";
+			exit 1
+		fi )
+		tar cf $SOSTAR sos
+	fi
+	/bin/rm -rf sos
+	if ! test -f ../$SOSTAR; then
+		echo archive $SOSTAR must be next to source tree.
+		exit 1
+	fi
+	)
+else
+	git submodule init sos && git submodule update sos && tar cf ../$SOSTAR sos
+fi
+
 if ! test -f ../$SOSTAR; then
         echo archive $SOSTAR must be next to source tree.
         exit 1
