@@ -1,4 +1,6 @@
 ovis
+plist
+rlist
 sos
 *log
 *.spec

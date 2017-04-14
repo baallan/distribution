@@ -16,7 +16,7 @@ Recommended rpms for compute nodes:
 * ovis
 * ovis-initscripts-base
 * ovis-initscripts-systemd
-* ovis-python2
+* ovis-python2 (optional)
 
 Recommended additional rpms for login nodes:
 * ovis-devel
@@ -25,6 +25,12 @@ Recommended additional rpms for login nodes:
 
 Recommended additional rpms for storage hosts:
 * ovis-sosdb
+* ovis-ldms-sos
+
+Recommended for analytical environments:
+* ovis-baler
+* ovis-python2
+
 
 ## TOSS 2
 
