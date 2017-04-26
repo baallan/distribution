@@ -134,6 +134,13 @@ else
 	git submodule init sos && git submodule update sos && tar cf ../$SOSTAR sos
 fi
 
+patches="
+flex_array.3.4.1
+"
+for i in $patches; do
+	patch -p1 < ../patches/$i
+	git commit -a -m "add $packing distribution patches"
+done
 if ! test -f ../$SOSTAR; then
         echo archive $SOSTAR must be next to source tree.
         exit 1

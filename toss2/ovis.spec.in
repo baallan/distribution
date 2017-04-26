@@ -29,11 +29,7 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Source: %{name}-%{version}.tar.gz
 Requires: rpm >= 4.8.0
 Requires: ovis-libevent2
-Requires: libyaml libyaml-devel
 @ENABLE_LDMS_PYTHON_TRUE@Requires: python
-@ENABLE_PYTHON_TRUE@Requires:Cython
-@ENABLE_SWIG_TRUE@Requires: python-devel
-@ENABLE_SOS_TRUE@Requires: numpy
 @ENABLE_SSL_TRUE@Requires: openssl
 @ENABLE_LIBGENDERS_TRUE@Requires: boost-regex boost-program-options
 @ENABLE_LIBGENDERS_TRUE@Requires: genders
@@ -47,9 +43,7 @@ BuildRequires: gettext-devel gcc glib2-devel
 @ENABLE_RDMA_TRUE@BuildRequires: librdmacm-devel libibverbs-devel
 @ENABLE_SYSCLASSIB_TRUE@BuildRequires: libibmad libibmad-devel libibumad libibumad-devel
 BuildRequires: ovis-libevent2-devel
-BuildRequires: libyaml libyaml-devel
 @ENABLE_SWIG_TRUE@BuildRequires: python python-devel
-@ENABLE_PYTHON_TRUE@BuildRequires: Cython
 @ENABLE_SWIG_TRUE@BuildRequires: swig
 @ENABLE_LIBGENDERS_TRUE@BuildRequires: boost-devel
 @ENABLE_LIBGENDERS_TRUE@BuildRequires: genders
@@ -65,8 +59,7 @@ Prefix: /etc
 
 %description
 This package provides the OVIS commands and libraries, OVIS apis and transport libraries, and scalable object store libraries for TOSS 2.
-Configured with @ac_configure_args@.
-
+Configured with @ac_configure_args@ CFLAGS="@CFLAGS@ %{optflags}"
 
 %prep
 %setup -q
@@ -75,7 +68,8 @@ Configured with @ac_configure_args@.
 echo bTMPPATH %{_tmppath}
 rm -rf $RPM_BUILD_ROOT
 echo bBUILDROOT $RPM_BUILD_ROOT
-%configure CFLAGS=-g @ac_configure_args@
+export CFLAGS="@CFLAGS@ %{optflags}"
+%configure @ac_configure_args@
 make V=1 -j 16
 
 %install
@@ -102,6 +96,31 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root)
 @ENABLE_BALER_TRUE@%exclude %{_bindir}/bhquery
+@ENABLE_BALER_TRUE@%exclude %{_sbindir}/balerd
+@ENABLE_BALER_TRUE@%exclude %{_sbindir}/bhttpd
+@ENABLE_BALER_TRUE@%exclude %{_bindir}/baler-pedigree
+@ENABLE_BALER_TRUE@%exclude %{_bindir}/bassoc*
+@ENABLE_BALER_TRUE@%exclude %{_bindir}/bclient
+@ENABLE_BALER_TRUE@%exclude %{_bindir}/bcsv2bnumvec
+@ENABLE_BALER_TRUE@%exclude %{_bindir}/b*test
+@ENABLE_BALER_TRUE@%exclude %{_bindir}/bmap_dump
+@ENABLE_BALER_TRUE@%exclude %{_bindir}/bmeta_cluster
+@ENABLE_BALER_TRUE@%exclude %{_bindir}/bnumvec
+@ENABLE_BALER_TRUE@%exclude %{_bindir}/bquery
+@ENABLE_BALER_TRUE@%exclude %{_bindir}/bsos_part_modify
+@ENABLE_BALER_TRUE@%exclude %{_bindir}/btkn_dump
+@ENABLE_BALER_TRUE@%exclude %{_libdir}/libbaler.*
+@ENABLE_BALER_TRUE@%exclude %{_libdir}/libbassocimg.*
+@ENABLE_BALER_TRUE@%exclude %{_libdir}/libbin_metric.*
+@ENABLE_BALER_TRUE@%exclude %{_libdir}/libbin_rsyslog_tcp.*
+@ENABLE_BALER_TRUE@%exclude %{_libdir}/libbin_test.*
+@ENABLE_BALER_TRUE@%exclude %{_libdir}/libbout_me.*
+@ENABLE_BALER_TRUE@%exclude %{_libdir}/libbout_sos.*
+@ENABLE_BALER_TRUE@%exclude %{_libdir}/libbout_sos_img.*
+@ENABLE_BALER_TRUE@%exclude %{_libdir}/libbout_sos_msg.*
+@ENABLE_BALER_TRUE@%exclude %{_libdir}/libbquery.*
+@ENABLE_BALER_TRUE@%exclude %{_libdir}/libbsos_img.*
+@ENABLE_BALER_TRUE@%exclude %{_libdir}/libbsos_msg.*
 %{_libdir}/*
 %{_bindir}/*
 %{_sbindir}/*
@@ -117,6 +136,47 @@ rm -rf $RPM_BUILD_ROOT
 @ENABLE_SOS_TRUE@%exclude %{_libdir}/ovis-ldms/libstore_sos*
 @ENABLE_SOS_TRUE@%exclude %{_sbindir}/ldmsd_sos_init
 #end core
+@ENABLE_BALER_TRUE@# baler
+@ENABLE_BALER_TRUE@%package baler
+@ENABLE_BALER_TRUE@Summary: OVIS Baler tools
+@ENABLE_BALER_TRUE@Group: %{ldms_grp}
+@ENABLE_BALER_TRUE@Requires: ovis = @VERSION@
+@ENABLE_BALER_TRUE@Requires: libyaml python
+@ENABLE_BALER_TRUE@BuildRequires: libyaml libyaml-devel
+@ENABLE_BALER_TRUE@%description baler
+@ENABLE_BALER_TRUE@This provides log file analysis tools collectively known as baler.
+@ENABLE_BALER_TRUE@%files baler
+@ENABLE_BALER_TRUE@%defattr(-,root,root)
+@ENABLE_BALER_TRUE@%{_prefix}/lib/python2.6/site-packages/baler
+@ENABLE_BALER_TRUE@%{_prefix}/lib/python2.6/site-packages/abhttp
+@ENABLE_BALER_TRUE@%{_bindir}/bhquery
+@ENABLE_BALER_TRUE@%{_sbindir}/balerd
+@ENABLE_BALER_TRUE@%{_sbindir}/bhttpd
+@ENABLE_BALER_TRUE@%{_bindir}/baler-pedigree
+@ENABLE_BALER_TRUE@%{_bindir}/bassoc*
+@ENABLE_BALER_TRUE@%{_bindir}/bclient
+@ENABLE_BALER_TRUE@%{_bindir}/bcsv2bnumvec
+@ENABLE_BALER_TRUE@%{_bindir}/b*test
+@ENABLE_BALER_TRUE@%{_bindir}/bmap_dump
+@ENABLE_BALER_TRUE@%{_bindir}/bmeta_cluster
+@ENABLE_BALER_TRUE@%{_bindir}/bnumvec
+@ENABLE_BALER_TRUE@%{_bindir}/bquery
+@ENABLE_BALER_TRUE@%{_bindir}/bsos_part_modify
+@ENABLE_BALER_TRUE@%{_bindir}/btkn_dump
+@ENABLE_BALER_TRUE@%{_libdir}/libbaler.*
+@ENABLE_BALER_TRUE@%{_libdir}/libbassocimg.*
+@ENABLE_BALER_TRUE@%{_libdir}/libbin_metric.*
+@ENABLE_BALER_TRUE@%{_libdir}/libbin_rsyslog_tcp.*
+@ENABLE_BALER_TRUE@%{_libdir}/libbin_test.*
+@ENABLE_BALER_TRUE@%{_libdir}/libbout_me.*
+@ENABLE_BALER_TRUE@%{_libdir}/libbout_sos.*
+@ENABLE_BALER_TRUE@%{_libdir}/libbout_sos_img.*
+@ENABLE_BALER_TRUE@%{_libdir}/libbout_sos_msg.*
+@ENABLE_BALER_TRUE@%{_libdir}/libbquery.*
+@ENABLE_BALER_TRUE@%{_libdir}/libbsos_img.*
+@ENABLE_BALER_TRUE@%{_libdir}/libbsos_msg.*
+
+@ENABLE_BALER_TRUE@# end baler
 
 # devel
 %package devel
@@ -321,15 +381,19 @@ done
 %package python2
 Summary: Python files for LDMS, SOS, and baler
 %description python2
-Python files for LDMS
+Python files for ovis
+# install needs
+Requires: ovis >= 3.0.0 python
+# build needs
+@ENABLE_LDMS_PYTHON_TRUE@BuildRequires: python
+@ENABLE_SWIG_TRUE@BuildRequires: python python-devel swig
 %files python2
 %defattr(-,root,root)
 @ENABLE_SWIG_TRUE@%{_prefix}/lib/python2.6/site-packages/ovis_lib
 @ENABLE_SWIG_TRUE@%{_prefix}/lib/python2.6/site-packages/ovis_ldms
 @ENABLE_LDMS_PYTHON_TRUE@%{_prefix}/lib/python2.6/site-packages/ldmsd
-@ENABLE_PYTHON_TRUE@%{_prefix}/lib/python2.6/site-packages/sosdb
-@ENABLE_BALER_TRUE@%{_prefix}/lib/python2.6/site-packages/baler
-@ENABLE_BALER_TRUE@%{_prefix}/lib/python2.6/site-packages/abhttp
+@ENABLE_BALER_TRUE@%exclude %{_prefix}/lib/python2.6/site-packages/baler
+@ENABLE_BALER_TRUE@%exclude %{_prefix}/lib/python2.6/site-packages/abhttp
 #%%{python2_sitelib}/*
 #end python2
 # see https://fedoraproject.org/wiki/Packaging:Python_Old
@@ -338,21 +402,36 @@ Python files for LDMS
 @ENABLE_SOS_TRUE@%package sosdb
 @ENABLE_SOS_TRUE@Summary: SOS database package
 @ENABLE_SOS_TRUE@Group: %{ldms_grp}
+# install requires
 @ENABLE_SOS_TRUE@Requires: ovis >= 3.0.0
+@ENABLE_PYTHON_TRUE@Requires: Cython
+@ENABLE_PYTHON_TRUE@@ENABLE_SOS_TRUE@Requires: numpy
+# build requires
+@ENABLE_SWIG_TRUE@BuildRequires: python python-devel
+@ENABLE_SWIG_TRUE@BuildRequires: swig
 @ENABLE_SOS_TRUE@%description sosdb
 @ENABLE_SOS_TRUE@This is a collection of SOS database utilities for LDMS.
 @ENABLE_SOS_TRUE@
 @ENABLE_SOS_TRUE@%files sosdb
 @ENABLE_SOS_TRUE@%defattr(-,root,root)
 @ENABLE_SOS_TRUE@%{_bindir}/sos_*
-@ENABLE_SOS_TRUE@%{_sbindir}/ldmsd_sos_init
 @ENABLE_SOS_TRUE@%{_libdir}/libkey_*
 @ENABLE_SOS_TRUE@%{_libdir}/libsos*
 @ENABLE_SOS_TRUE@%{_libdir}/libods*
 @ENABLE_SOS_TRUE@%{_libdir}/libidx_*
-@ENABLE_SOS_TRUE@%{_libdir}/ovis-ldms/libstore_sos*
 @ENABLE_SOS_TRUE@@ENABLE_PYTHON_TRUE@%{_prefix}/lib/python2.6/site-packages/sosdb
 @ENABLE_SOS_TRUE@#end sosdb
+@ENABLE_SOS_TRUE@%package ldms-sos
+@ENABLE_SOS_TRUE@Summary: LDMS sosdb plugins
+@ENABLE_SOS_TRUE@Requires: sosdb
+@ENABLE_SOS_TRUE@%description ldms-sos
+@ENABLE_SOS_TRUE@Libraries and utilities for SOS usage in LDMS
+@ENABLE_SOS_TRUE@%files ldms-sos
+@ENABLE_SOS_TRUE@%defattr(-,root,root)
+@ENABLE_SOS_TRUE@%{_sbindir}/ldmsd_sos_init
+@ENABLE_SOS_TRUE@%{_libdir}/ovis-ldms/libstore_sos*
+@ENABLE_SOS_TRUE@@ENABLE_PYTHON_TRUE@%{_prefix}/lib/python2.6/site-packages/sosdb
+@ENABLE_SOS_TRUE@#end ldms-sos
 
 %post
 for i in $RPM_INSTALL_PREFIX/bin/envldms.sh \
@@ -385,6 +464,8 @@ done
 @ENABLE_BALER_TRUE@ln -s $RPM_INSTALL_PREFIX/lib/python*/site-packages/baler/bquery.py $RPM_INSTALL_PREFIX/bin/bhquery
 
 %changelog
+* Wed Apr 26 2017 Ben Allan <baallan@sandia.gov> 3.4.1-1
+Flex array and swig bug patches. Refactor cython dependent bits.
 * Wed Mar 29 2017 Ben Allan <baallan@sandia.gov> 3.4.0-1
 Update package refactorization
 * Tue Mar 14 2017 Ben Allan <baallan@sandia.gov> 3.3.1-2

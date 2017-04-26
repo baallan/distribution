@@ -54,6 +54,7 @@ Recommended additional rpms for login nodes:
 
 Recommended additional rpms for storage hosts:
 * ovis-sosdb
+* ovis-ldms-sos
 
 ## CLE6
 
