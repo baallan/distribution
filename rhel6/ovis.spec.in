@@ -22,7 +22,7 @@
 Summary: OVIS Commands and Libraries
 Name: ovis
 Version: @VERSION@
-Release: chama_%{build_timestamp}%{?dist}
+Release: desk_%{build_timestamp}%{?dist}
 License: GPLv2 or BSD
 Group: %{ldms_all}
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
@@ -382,6 +382,8 @@ done
 @ENABLE_BALER_TRUE@ln -s $RPM_INSTALL_PREFIX/lib/python*/site-packages/baler/bquery.py $RPM_INSTALL_PREFIX/bin/bhquery
 
 %changelog
+* Fri Jun 23 2017 Ben Allan <baallan@sandia.gov> 3.4.2-1
+Update spec for configure controls.
 * Wed Mar 29 2017 Ben Allan <baallan@sandia.gov> 3.4.0-1
 Update package refactorization
 * Tue Mar 14 2017 Ben Allan <baallan@sandia.gov> 3.3.1-2

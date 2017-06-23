@@ -22,7 +22,7 @@
 Summary: OVIS Commands and Libraries
 Name: ovis
 Version: @VERSION@
-Release: chama_%{build_timestamp}%{?dist}
+Release: desk_%{build_timestamp}%{?dist}
 License: GPLv2 or BSD
 Group: %{ldms_all}
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
@@ -83,7 +83,7 @@ make DESTDIR=${RPM_BUILD_ROOT} V=1 install
 rm -f $RPM_BUILD_ROOT%{_libdir}/*.la
 rm -f $RPM_BUILD_ROOT%{_libdir}/ovis-ldms/lib*.la
 # fix in subsequent after sorting use of sysconfdir or share/baler in baler
-rm -f $RPM_BUILD_ROOT%{_prefix}/etc/ovis/eng-dictionary
+@ENABLE_BALER_TRUE@rm -f $RPM_BUILD_ROOT%{_prefix}/etc/ovis/eng-dictionary
 rm $RPM_BUILD_ROOT%{_bindir}/test_*
 rm $RPM_BUILD_ROOT%{_bindir}/ldms_ban.sh
 mv $RPM_BUILD_ROOT%{_docdir}/ovis-ldms-*/* $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}/
@@ -98,13 +98,21 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root)
-%exclude %{_bindir}/bhquery
+@ENABLE_BALER_TRUE@%exclude %{_bindir}/bhquery
 %{_libdir}/*
 %{_bindir}/*
 %{_sbindir}/*
 %{_docdir}/%{name}-%{version}/COPYING
 %{_docdir}/%{name}-%{version}/ChangeLog
 %{_docdir}/%{name}-%{version}/AUTHORS
+%exclude %{_bindir}/ldms-py*sh
+@ENABLE_SOS_TRUE@%exclude %{_libdir}/libkey_*
+@ENABLE_SOS_TRUE@%exclude %{_libdir}/libidx_*
+@ENABLE_SOS_TRUE@%exclude %{_bindir}/sos_*
+@ENABLE_SOS_TRUE@%exclude %{_libdir}/libsos*
+@ENABLE_SOS_TRUE@%exclude %{_libdir}/libods*
+@ENABLE_SOS_TRUE@%exclude %{_libdir}/ovis-ldms/libstore_sos*
+@ENABLE_SOS_TRUE@%exclude %{_sbindir}/ldmsd_sos_init
 #end core
 
 # devel
@@ -136,7 +144,7 @@ on compute nodes in large clusters.
 
 %files test
 %defattr(-,root,root)
-%{_bindir}/ldms*sh
+%{_bindir}/ldms-py*sh
 #end test
 
 # initscripts
@@ -152,7 +160,7 @@ control file, use of libgenders can be bypassed.
 
 %files initscripts-base
 %defattr(-,root,root)
-%config(noreplace) %{_sysconfdir}/baler/*
+@ENABLE_BALER_TRUE@%config(noreplace) %{_sysconfdir}/baler/*
 @ENABLE_LIBGENDERS_TRUE@%config(noreplace) %{_sysconfdir}/sysconfig/*
 @ENABLE_LIBGENDERS_TRUE@%post initscripts-base
 @ENABLE_LIBGENDERS_TRUE@varrunscripts="
@@ -287,8 +295,8 @@ Doxygen files for ovis package.
 %{_mandir}/*/*
 %{_datadir}/doc/%{name}-%{version}
 ## %{_datadir}/doc/ovis-lib-%{version}
-## %{_datadir}/doc/sos
-## %{_datadir}/doc/baler
+@ENABLE_SOS_TRUE@# %{_datadir}/doc/sos
+@ENABLE_BALER_TRUE@# %{_datadir}/doc/baler
 ## %%docdir %{_defaultdocdir}
 %docdir /usr/share/doc
 %post doc
@@ -308,34 +316,40 @@ for i in $varrunmans; do
 done
 
 %package python2
-Summary: Python files for LDMS and baler
+Summary: Python files for LDMS, SOS, and baler
 %description python2
 Python files for LDMS
 %files python2
 %defattr(-,root,root)
-%{_prefix}/lib/python2.7/site-packages/ovis_lib
-%{_prefix}/lib/python2.7/site-packages/ovis_ldms
-%{_prefix}/lib/python2.7/site-packages/ldmsd
-%{_prefix}/lib/python2.7/site-packages/sosdb
-%{_prefix}/lib/python2.7/site-packages/baler
-%{_prefix}/lib/python2.7/site-packages/abhttp
+@ENABLE_SWIG_TRUE@%{_prefix}/lib/python2.6/site-packages/ovis_lib
+@ENABLE_SWIG_TRUE@%{_prefix}/lib/python2.6/site-packages/ovis_ldms
+@ENABLE_LDMS_PYTHON_TRUE@%{_prefix}/lib/python2.6/site-packages/ldmsd
+@ENABLE_PYTHON_TRUE@%{_prefix}/lib/python2.6/site-packages/sosdb
+@ENABLE_BALER_TRUE@%{_prefix}/lib/python2.6/site-packages/baler
+@ENABLE_BALER_TRUE@%{_prefix}/lib/python2.6/site-packages/abhttp
 #%%{python2_sitelib}/*
 #end python2
 # see https://fedoraproject.org/wiki/Packaging:Python_Old
 # and https://fedoraproject.org/wiki/Packaging:Python
 
-%package sosdb
-Summary: SOS database package
-Group: %{ldms_grp}
-Requires: ovis >= 3.0.0
-%description sosdb
-This is a collection of SOS database utilities.
-
-%files sosdb
-%defattr(-,root,root)
-%{_bindir}/sos_*
-%{_prefix}/lib/python2.7/site-packages/sosdb
-#end test
+@ENABLE_SOS_TRUE@%package sosdb
+@ENABLE_SOS_TRUE@Summary: SOS database package
+@ENABLE_SOS_TRUE@Group: %{ldms_grp}
+@ENABLE_SOS_TRUE@Requires: ovis >= 3.0.0
+@ENABLE_SOS_TRUE@%description sosdb
+@ENABLE_SOS_TRUE@This is a collection of SOS database utilities for LDMS.
+@ENABLE_SOS_TRUE@
+@ENABLE_SOS_TRUE@%files sosdb
+@ENABLE_SOS_TRUE@%defattr(-,root,root)
+@ENABLE_SOS_TRUE@%{_bindir}/sos_*
+@ENABLE_SOS_TRUE@%{_sbindir}/ldmsd_sos_init
+@ENABLE_SOS_TRUE@%{_libdir}/libkey_*
+@ENABLE_SOS_TRUE@%{_libdir}/libsos*
+@ENABLE_SOS_TRUE@%{_libdir}/libods*
+@ENABLE_SOS_TRUE@%{_libdir}/libidx_*
+@ENABLE_SOS_TRUE@%{_libdir}/ovis-ldms/libstore_sos*
+@ENABLE_SOS_TRUE@@ENABLE_PYTHON_TRUE@%{_prefix}/lib/python2.6/site-packages/sosdb
+@ENABLE_SOS_TRUE@#end sosdb
 
 %post
 for i in $RPM_INSTALL_PREFIX/bin/envldms.sh \
@@ -352,7 +366,7 @@ for i in $RPM_INSTALL_PREFIX/bin/envldms.sh \
 done
 
 %post test
-for i in $RPM_INSTALL_PREFIX/bin/ldms*.sh; do
+for i in $RPM_INSTALL_PREFIX/bin/ldms-py*.sh; do
 	sed -i \
 		-e "s%BUILDDIR=/usr%BUILDDIR=$RPM_INSTALL_PREFIX%g" \
 		-e "s%exec_prefix=/usr%exec_prefix=$RPM_INSTALL_PREFIX%g" \
@@ -364,10 +378,12 @@ for i in $RPM_INSTALL_PREFIX/bin/ldms*.sh; do
 done
 
 %post python2
-rm -f $RPM_INSTALL_PREFIX/bin/bhquery
-ln -s $RPM_INSTALL_PREFIX/lib/python*/site-packages/baler/bquery.py $RPM_INSTALL_PREFIX/bin/bhquery
+@ENABLE_BALER_TRUE@rm -f $RPM_INSTALL_PREFIX/bin/bhquery
+@ENABLE_BALER_TRUE@ln -s $RPM_INSTALL_PREFIX/lib/python*/site-packages/baler/bquery.py $RPM_INSTALL_PREFIX/bin/bhquery
 
 %changelog
+* Fri Jun 23 2017 Ben Allan <baallan@sandia.gov> 3.4.2-1
+Update spec for configure controls.
 * Wed Mar 29 2017 Ben Allan <baallan@sandia.gov> 3.4.0-1
 Update package refactorization
 * Tue Mar 14 2017 Ben Allan <baallan@sandia.gov> 3.3.1-2
