@@ -1,3 +1,11 @@
+OVIS v3.4.2 is a patch for improved usability.
+
+New features:
+
+* store_csv support for automatic rename of closed files, avoiding extra log/pipe usage.
+* check for correct use of init scripts
+* adds line numbers to error messages when parsing configuration files.
+
 OVIS v3.4 is a major rewrite of LDMS v2.
 
 New features:

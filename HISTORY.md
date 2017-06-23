@@ -15,7 +15,7 @@ Answers:
 
     Similar issues apply to cmake, scons, and other autotools alternatives.
 
-    Ultimately we end up where we are: everyone who wants to build from source must cope with the rigors autogen instead of simple configure/make/make install. We try to keep our autotooling compatible with the latest mainline Redhat Enterprise offerings and back compatible with the current and one previous Redhat Enterprise Linux and Cray Linux Environment editions.
+    Ultimately we end up where we are: everyone who wants to build from source must cope with the rigors of autogen instead of simple configure/make/make install. We try to keep our autotooling compatible with the latest mainline Redhat Enterprise offerings and back compatible with the current and one previous Redhat Enterprise Linux and Cray Linux Environment editions.
 
 2. Double configure in building RPMs.
 
