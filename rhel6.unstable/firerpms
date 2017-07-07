@@ -120,6 +120,15 @@ if ! git checkout $ovis_branch; then
 	echo cannot checkout ovis branch $ovis_branch.
 	exit 1
 fi
+
+patches="
+flex_array_3.5.x
+"
+for i in $patches; do
+	patch -p1 < ../patches/$i
+	git commit -a -m "add $packing distribution patches"
+done
+
 if ! test -f ../$SOSTAR; then
         echo archive $SOSTAR must be next to source tree.
         exit 1

@@ -1,12 +1,14 @@
 #!/bin/bash
 #
 #
-packing=toss2.unstable
-ovis_branch=master
+experiment=ibfabric
+packing=toss2.unstable.$experiment
+ovis_branch=ibfabric_1
 sos_branch=master
 NetworkRequires=gitlab.opengridcomputing.com
 SOSREPO=gitlab@gitlab.opengridcomputing.com:tom/SOS.git
-OVISREPO=gitlab@gitlab.opengridcomputing.com:ovis/ovis.git
+#OVISREPO=gitlab@gitlab.opengridcomputing.com:ovis/ovis.git
+OVISREPO=/home/baallan/baallan_ovis
 
 if test -n "$MODULEPATH"; then
 	module purge
@@ -50,7 +52,7 @@ BALER_OPTS="
 --disable-baler
 "
 STORE_OPTS="
---enable-sos
+--disable-sos
 --enable-flatfile
 --enable-csv
 --enable-store
@@ -82,8 +84,8 @@ SAMPLER_OPTS="
 --enable-procstat
 --enable-vmstat
 --enable-meminfo
---enable-lustre
---disable-ibfabric
+--disable-lustre
+--enable-ibfabric
 "
 allconfig="$PACK_OPTS $SECURITY_OPTS $NETWORK_OPTS $IFACE_OPTS $BALER_OPTS $STORE_OPTS $SAMPLER_OPTS $CRAY_LOCATIONS"
 
@@ -93,8 +95,8 @@ if ! pack_prechecks "$allconfig"; then
 fi
 
 dn=$(pwd)
-bn=$(basename $dn)
-if test "$bn" = "$packing" -a -f ovis.spec.in; then
+bn=$(basename $dn .$experiment)
+if test "$bn.$experiment" = "$packing" -a -f ovis.spec.in; then
 	: in the right place
 else
 	echo This must be run from $packing, which should be clean and at any rate will be overwritten.
@@ -135,9 +137,8 @@ if test -n "$SOSREPO"; then
 else
 	git submodule init sos && git submodule update sos && tar cf ../$SOSTAR sos
 fi
-
 patches="
-flex_array.3.4.1
+flex_array_3.5.x
 "
 for i in $patches; do
 	patch -p1 < ../patches/$i
