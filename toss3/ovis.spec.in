@@ -22,11 +22,12 @@
 Summary: OVIS Commands and Libraries
 Name: ovis
 Version: @VERSION@
-Release: 1%{?dist}
+Release: 1.1%{?dist}
 License: GPLv2 or BSD
 Group: %{ldms_all}
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Source: %{name}-%{version}.tar.gz
+Obsoletes: ldms-all
 Requires: rpm >= 4.8.0
 Requires: libevent >= 2.0.21
 @ENABLE_LDMS_PYTHON_TRUE@Requires: python
@@ -184,6 +185,7 @@ rm -rf $RPM_BUILD_ROOT
 Summary: LDMS devel package
 Group: %{ldms_grp}
 Requires: ovis = @VERSION@
+Obsoletes: ldms-all-devel
 %description devel
 This is a development package of Lightweight Distributed Metric System (LDMS).
 Users who want to implement their own sampler or store must install this
@@ -201,6 +203,7 @@ package.
 Summary: LDMS test package
 Group: %{ldms_grp}
 Requires: ovis = @VERSION@
+Obsoletes: ldms-all-test
 %description test
 This is a collection of test scripts for (LDMS).
 They also serve as examples, but are not usually of interest
@@ -216,6 +219,7 @@ on compute nodes in large clusters.
 Summary: LDMS base initscripts for libgenders control of %{name}
 Group: %{ldms_grp}
 Requires: ovis = @VERSION@
+Obsoletes: ldms-all-initscripts
 %description initscripts-base
 This is the support file set for libgenders based booting of LDMS daemons.
 Users normally provide information via /etc/genders (or alternate file)
@@ -351,6 +355,7 @@ control file, use of libgenders can be bypassed.
 %package doc
 Summary: Documentation files for %{name}
 Group: %{ldms_all}
+Obsoletes: ldms-all-doc
 ## Requires: %{name}-devel = %{version}-%{release}
 %description doc
 Doxygen files for ovis package.
