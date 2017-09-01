@@ -325,8 +325,8 @@ index a5b6314..f0a5168 100755
 +# These are the cflags defined by Redhat for daemons and other 
 +# security-required applications in /usr/lib/rpm/redhat/macros.
 +# SUSE and Debian define nearly identical sets. They require c99
-+# flexible array syntax in declarations.
-+export RHEL7_CFLAGS="-O2 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector-strong --param=ssp-buffer-size=4 -grecord-gcc-switches"
++# flexible array syntax in declarations. O1 overrides gcc loop bug.
++export RHEL7_CFLAGS="-O2 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector-strong --param=ssp-buffer-size=4 -grecord-gcc-switches -O1"
 +export CFLAGS="$RHEL7_CFLAGS"
 +# See also: https://gcc.gnu.org/onlinedocs/gcc/Zero-Length.html for why this is important.
  

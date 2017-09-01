@@ -5,7 +5,7 @@ packing=cle6.unstable
 ovis_branch=master
 sos_branch=master
 NetworkRequires=gitlab.opengridcomputing.com
-SOSREPO=gitlab@gitlab.opengridcomputing.com:tom/SOS.git
+#SOSREPO=gitlab@gitlab.opengridcomputing.com:tom/SOS.git
 OVISREPO=gitlab@gitlab.opengridcomputing.com:ovis/ovis.git
 
 . ../support/package-functions
