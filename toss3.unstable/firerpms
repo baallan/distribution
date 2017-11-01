@@ -2,18 +2,22 @@
 #
 #
 packing=toss3.unstable
-ovis_branch=OVIS-3.4
+##ovis_branch=rpm_relocation
+ovis_branch=master
 sos_branch=master
 NetworkRequires=github.com
 #SOSREPO=gitlab@gitlab.opengridcomputing.com:tom/SOS.git
-OVISREPO=https://github.com/ovis-hpc/ovis.git
+#OVISREPO=https://github.com/ovis-hpc/ovis.git
+##OVISREPO=gitlab@gitlab.opengridcomputing.com:krehm/ovis.git 
+#OVISREPO=/ascldap/users/baallan/serrano/krehm_ovis
+OVISREPO=gitlab@gitlab.opengridcomputing.com:ovis/ovis.git
 
 if test -n "$MODULEPATH"; then
 	module purge
 fi
 . ../support/package-functions
 
-prefix=/usr
+prefix=/genetha
 PACK_OPTS="
 --disable-rpath
 --disable-static
@@ -134,13 +138,6 @@ else
 	git submodule init sos && git submodule update sos && tar cf ../$SOSTAR sos
 fi
 
-patches="
-flex_array.3.4.1
-"
-for i in $patches; do
-	patch -p1 < ../patches/$i
-	git commit -a -m "add $packing distribution patches"
-done
 if ! test -f ../$SOSTAR; then
         echo archive $SOSTAR must be next to source tree.
         exit 1
@@ -207,7 +204,7 @@ if test -f sos/config.status; then
 	./sos/config.status --file=$specdir/ovis-${packing}.spec:$specdir/$specfile
 	specfile=ovis-${packing}.spec
 fi && \
-rpmbuild -v --define "_topdir `pwd`/$packing" -ba $specdir/$specfile && \
+rpmbuild -vv --define "_topdir `pwd`/$packing" -ba $specdir/$specfile && \
 touch completed
 if ! test -f completed; then
 	echo FAIL

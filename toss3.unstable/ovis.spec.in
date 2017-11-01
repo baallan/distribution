@@ -18,6 +18,11 @@
 %{!?python2_sitearch: %global python2_sitearch %(%{__python2} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib(1))")}
 %endif
 
+# for rpm and cpio installation both allowed, we need this:
+%define relo_usr /@ovis_prefix@
+%define relo_etc /@ovis_sysconfdir@
+%define relo_var /@ovis_localstatedir@
+
 # Main package
 Summary: OVIS Commands and Libraries
 Name: ovis
@@ -60,8 +65,22 @@ Prefix: /etc
 
 %description
 This package provides the OVIS commands and libraries, OVIS apis and transport libraries, and scalable object store libraries for TOSS 3.
-Configured with @ac_configure_args@.
+Configured for relocation with @ac_configure_args@
+--prefix=%{relo_usr}
+--exec-prefix=%{relo_usr}
+--bindir=%{relo_usr}/bin
+--sbindir=%{relo_usr}/sbin
+--sysconfdir=%{relo_etc}
+--datadir=%{relo_usr}/share
+--includedir=%{relo_usr}/include
+--libdir='${exec_prefix}/lib64'
+--libexecdir=%{relo_usr}/libexec
+--mandir=%{relo_usr}/share/man
+--infodir=%{relo_usr}/share/info
+--sharedstatedir=%{relo_var}/lib
+--localstatedir=%{relo_var}
 
+%dump
 
 %prep
 %setup -q
@@ -70,14 +89,20 @@ Configured with @ac_configure_args@.
 echo bTMPPATH %{_tmppath}
 rm -rf $RPM_BUILD_ROOT
 echo bBUILDROOT $RPM_BUILD_ROOT
-export CFLAGS="@CFLAGS@ %{optflags}"
-%configure @ac_configure_args@
-make V=1 -j 16
+#export CFLAGS="@CFLAGS@ %{optflags}"
+export CFLAGS="@CFLAGS@"
+./configure @ac_configure_args@ --localstatedir=%{relo_var} --prefix=%{relo_usr} --exec-prefix=%{relo_usr} --bindir=%{relo_usr}/bin --sbindir=%{relo_usr}/sbin --sysconfdir=%{relo_etc} --datadir=%{relo_usr}/share --includedir=%{relo_usr}/include --libdir='${exec_prefix}/lib64' --libexecdir=%{relo_usr}/libexec --mandir=%{relo_usr}/share/man --infodir=%{relo_usr}/share/info --sharedstatedir=%{relo_var}/lib
+
+ncores=`grep -c ^processor /proc/cpuinfo`
+make V=1 -j $ncores
 
 %install
 echo TMPPATH %{_tmppath}
 echo BUILDROOT $RPM_BUILD_ROOT
 make DESTDIR=${RPM_BUILD_ROOT} V=1 install
+mv %{buildroot}%{relo_usr} %{buildroot}%{_prefix}
+mv %{buildroot}%{relo_etc} %{buildroot}%{_sysconfdir}
+
 # remove unpackaged files from the buildroot
 rm -f $RPM_BUILD_ROOT%{_libdir}/*.la
 rm -f $RPM_BUILD_ROOT%{_libdir}/ovis-ldms/lib*.la
@@ -91,6 +116,22 @@ mv $RPM_BUILD_ROOT%{_docdir}/ovis-ldms-*/* $RPM_BUILD_ROOT%{_docdir}/%{name}-%{v
 @ENABLE_LIBGENDERS_TRUE@cp $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}/sample_init_scripts/genders/sysv/etc/init.d/ldms* $RPM_BUILD_ROOT%{_sysconfdir}/init.d/
 @ENABLE_LIBGENDERS_TRUE@cp -ar $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}/sample_init_scripts/genders/systemd/etc/* $RPM_BUILD_ROOT%{_sysconfdir}
 @ENABLE_LIBGENDERS_TRUE@cp -r $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}/sample_init_scripts/genders/systemd/services/ldms*.service $RPM_BUILD_ROOT%{_prefix}/lib/systemd/system
+mkdir -p -m 755 $RPM_BUILD_ROOT%{_localstatedir}/log/ldmsd
+mkdir -p -m 755 $RPM_BUILD_ROOT%{_localstatedir}/run/ldmsd
+mkdir -p -m 755 $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/ldms.d/ClusterGenders
+mkdir -p -m 755 $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/ldms.d/ClusterSecrets
+mkdir -p -m 755 $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/ldms.d/plugins-conf
+
+# relocate files from symlinks that are broken if relocated
+@ENABLE_BALER_TRUE@cp $RPM_BUILD_ROOT%{_prefix}/lib/python2.7/site-packages/baler/bhquery.py $RPM_BUILD_ROOT%{_bindir}/bhquery.real
+@ENABLE_BALER_TRUE@cp $RPM_BUILD_ROOT%{_prefix}/lib/python2.7/site-packages/abhttp/bclient.py $RPM_BUILD_ROOT%{_bindir}/bclient.real
+@ENABLE_BALER_TRUE@rm $RPM_BUILD_ROOT%{_bindir}/bhquery
+@ENABLE_BALER_TRUE@rm $RPM_BUILD_ROOT%{_bindir}/bclient
+@ENABLE_BALER_TRUE@mv $RPM_BUILD_ROOT%{_bindir}/bhquery.real $RPM_BUILD_ROOT%{_bindir}/bhquery
+@ENABLE_BALER_TRUE@mv $RPM_BUILD_ROOT%{_bindir}/bclient.real $RPM_BUILD_ROOT%{_bindir}/bclient
+
+echo making manifest
+./util/relocation/bld_manifest.sh %{buildroot}%{_prefix} %{buildroot}%{_sysconfdir} %{buildroot}%{_localstatedir} > %{buildroot}%{_prefix}/share/doc/ovis-@VERSION@/relocation/manifest
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -233,34 +274,13 @@ control file, use of libgenders can be bypassed.
 @ENABLE_BALER_TRUE@%config(noreplace) %{_sysconfdir}/baler/*
 @ENABLE_LIBGENDERS_TRUE@%config(noreplace) %{_sysconfdir}/sysconfig/*
 @ENABLE_LIBGENDERS_TRUE@%post initscripts-base
-@ENABLE_LIBGENDERS_TRUE@varrunscripts="
-@ENABLE_LIBGENDERS_TRUE@$RPM_INSTALL_PREFIX0/bin/ldmsd-wrapper.sh
-@ENABLE_LIBGENDERS_TRUE@$RPM_INSTALL_PREFIX2/sysconfig/ldms.d/ldmsd
-@ENABLE_LIBGENDERS_TRUE@$RPM_INSTALL_PREFIX2/sysconfig/ldms.d/ldms-functions
-@ENABLE_LIBGENDERS_TRUE@$RPM_INSTALL_PREFIX2/sysconfig/ldms.d/ldmsd.local.conf
-@ENABLE_LIBGENDERS_TRUE@"
-@ENABLE_LIBGENDERS_TRUE@# replace /var in /var/run occurences with prefix1 relocation
-@ENABLE_LIBGENDERS_TRUE@if test "$RPM_INSTALL_PREFIX1" != "/var" \
-@ENABLE_LIBGENDERS_TRUE@	-o "/etc" != "$RPM_INSTALL_PREFIX2" \
-@ENABLE_LIBGENDERS_TRUE@	-o "/usr" != "$RPM_INSTALL_PREFIX0"; then
-@ENABLE_LIBGENDERS_TRUE@	for i in $varrunscripts; do
-@ENABLE_LIBGENDERS_TRUE@		if test $i.rpmnew -nt $i; then
-@ENABLE_LIBGENDERS_TRUE@			j=$i.rpmnew
-@ENABLE_LIBGENDERS_TRUE@		else
-@ENABLE_LIBGENDERS_TRUE@			j=$i
-@ENABLE_LIBGENDERS_TRUE@		fi
-@ENABLE_LIBGENDERS_TRUE@		if grep LDMS_POST_INSTALLED=0 $j >/dev/null; then
-@ENABLE_LIBGENDERS_TRUE@			sed -i -e "s%/var%$RPM_INSTALL_PREFIX1%g" \
-@ENABLE_LIBGENDERS_TRUE@				-e "s%//run%/run%g" \
-@ENABLE_LIBGENDERS_TRUE@				-e "s%/etc%$RPM_INSTALL_PREFIX2%g" \
-@ENABLE_LIBGENDERS_TRUE@				-e "s%/usr%$RPM_INSTALL_PREFIX0%g" \
-@ENABLE_LIBGENDERS_TRUE@				-e "s%$RPM_INSTALL_PREFIX0/bin/test%/usr/bin/test%g" \
-@ENABLE_LIBGENDERS_TRUE@				-e "s%$RPM_INSTALL_PREFIX0/lib64/ovis-libevent2/lib64/%/usr/lib64/ovis-libevent2/lib64/%g" \
-@ENABLE_LIBGENDERS_TRUE@				-e "s%LDMS_POST_INSTALLED=0%LDMS_POST_INSTALLED=1%g" \
-@ENABLE_LIBGENDERS_TRUE@				$j
-@ENABLE_LIBGENDERS_TRUE@		fi
-@ENABLE_LIBGENDERS_TRUE@	done
-@ENABLE_LIBGENDERS_TRUE@fi
+#  bash $RELO_DIR/relocate-paths.sh $USR $ETC $VAR $RELO_DIR/manifest
+bash %{_prefix}/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
+	$RPM_INSTALL_PREFIX0 \
+	$RPM_INSTALL_PREFIX2 \
+	$RPM_INSTALL_PREFIX1 \
+	%{_prefix}/share/doc/ovis-@VERSION@/relocation/manifest
+
 #end initscripts-base
 
 @ENABLE_LIBGENDERS_TRUE@%package initscripts-systemd
@@ -277,34 +297,11 @@ control file, use of libgenders can be bypassed.
 @ENABLE_LIBGENDERS_TRUE@%config(noreplace) %{_prefix}/lib/systemd/system/ldmsd*.service
 @ENABLE_LIBGENDERS_TRUE@%config(noreplace) %{_bindir}/ldmsd-pre-systemd
 @ENABLE_LIBGENDERS_TRUE@%post initscripts-systemd
-@ENABLE_LIBGENDERS_TRUE@varrunscripts="
-@ENABLE_LIBGENDERS_TRUE@$RPM_INSTALL_PREFIX0/bin/ldmsd-pre-systemd
-@ENABLE_LIBGENDERS_TRUE@$RPM_INSTALL_PREFIX0/lib/systemd/system/ldmsd.service
-@ENABLE_LIBGENDERS_TRUE@$RPM_INSTALL_PREFIX0/lib/systemd/system/ldmsd@.service
-@ENABLE_LIBGENDERS_TRUE@"
-@ENABLE_LIBGENDERS_TRUE@# replace /var in /var/run occurences with prefix1 relocation
-@ENABLE_LIBGENDERS_TRUE@if test "$RPM_INSTALL_PREFIX1" != "/var" \
-@ENABLE_LIBGENDERS_TRUE@	-o "/etc" != "$RPM_INSTALL_PREFIX2" \
-@ENABLE_LIBGENDERS_TRUE@	-o "/usr" != "$RPM_INSTALL_PREFIX0"; then
-@ENABLE_LIBGENDERS_TRUE@	for i in $varrunscripts; do
-@ENABLE_LIBGENDERS_TRUE@		if test $i.rpmnew -nt $i; then
-@ENABLE_LIBGENDERS_TRUE@			j=$i.rpmnew
-@ENABLE_LIBGENDERS_TRUE@		else
-@ENABLE_LIBGENDERS_TRUE@			j=$i
-@ENABLE_LIBGENDERS_TRUE@		fi
-@ENABLE_LIBGENDERS_TRUE@		if grep LDMS_POST_INSTALLED=0 $j >/dev/null; then
-@ENABLE_LIBGENDERS_TRUE@			sed -i \
-@ENABLE_LIBGENDERS_TRUE@				-e "s%/var%$RPM_INSTALL_PREFIX1%g" \
-@ENABLE_LIBGENDERS_TRUE@				-e "s%//run%/run%g" \
-@ENABLE_LIBGENDERS_TRUE@				-e "s%/etc%$RPM_INSTALL_PREFIX2%g" \
-@ENABLE_LIBGENDERS_TRUE@				-e "s%/usr%$RPM_INSTALL_PREFIX0%g" \
-@ENABLE_LIBGENDERS_TRUE@				-e "s%$RPM_INSTALL_PREFIX0/bin/test%/usr/bin/test%g" \
-@ENABLE_LIBGENDERS_TRUE@				-e "s%$RPM_INSTALL_PREFIX0/lib64/ovis-libevent2/lib64/%/usr/lib64/ovis-libevent2/lib64/%g" \
-@ENABLE_LIBGENDERS_TRUE@				-e "s%LDMS_POST_INSTALLED=0%LDMS_POST_INSTALLED=1%g" \
-@ENABLE_LIBGENDERS_TRUE@				$j
-@ENABLE_LIBGENDERS_TRUE@		fi
-@ENABLE_LIBGENDERS_TRUE@	done
-@ENABLE_LIBGENDERS_TRUE@fi
+@ENABLE_LIBGENDERS_TRUE@bash %{_prefix}/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
+@ENABLE_LIBGENDERS_TRUE@	$RPM_INSTALL_PREFIX0 \
+@ENABLE_LIBGENDERS_TRUE@	$RPM_INSTALL_PREFIX2 \
+@ENABLE_LIBGENDERS_TRUE@	$RPM_INSTALL_PREFIX1 \
+@ENABLE_LIBGENDERS_TRUE@	%{_prefix}/share/doc/ovis-@VERSION@/relocation/manifest
 @ENABLE_LIBGENDERS_TRUE@#end initscripts-systemd
 
 
@@ -323,35 +320,12 @@ control file, use of libgenders can be bypassed.
 @ENABLE_LIBGENDERS_TRUE@%config(noreplace) %{_sysconfdir}/init.d/ldms*
 @ENABLE_LIBGENDERS_TRUE@%config(noreplace) %{_bindir}/ldmsd-pre-sysvinit
 @ENABLE_LIBGENDERS_TRUE@%post initscripts-sysv
-@ENABLE_LIBGENDERS_TRUE@varrunscripts="
-@ENABLE_LIBGENDERS_TRUE@$RPM_INSTALL_PREFIX0/bin/ldmsd-pre-sysvinit
-@ENABLE_LIBGENDERS_TRUE@$RPM_INSTALL_PREFIX2/init.d/ldmsd
-@ENABLE_LIBGENDERS_TRUE@$RPM_INSTALL_PREFIX2/init.d/ldmsd.template
-@ENABLE_LIBGENDERS_TRUE@"
-@ENABLE_LIBGENDERS_TRUE@# replace /var in /var/run occurences with prefix1 relocation
-@ENABLE_LIBGENDERS_TRUE@if test "$RPM_INSTALL_PREFIX1" != "/var" \
-@ENABLE_LIBGENDERS_TRUE@	-o "/etc" != "$RPM_INSTALL_PREFIX2" \
-@ENABLE_LIBGENDERS_TRUE@	-o "/usr" != "$RPM_INSTALL_PREFIX0"; then
-@ENABLE_LIBGENDERS_TRUE@	for i in $varrunscripts; do
-@ENABLE_LIBGENDERS_TRUE@		if test $i.rpmnew -nt $i; then
-@ENABLE_LIBGENDERS_TRUE@			j=$i.rpmnew
-@ENABLE_LIBGENDERS_TRUE@		else
-@ENABLE_LIBGENDERS_TRUE@			j=$i
-@ENABLE_LIBGENDERS_TRUE@		fi
-@ENABLE_LIBGENDERS_TRUE@		if grep LDMS_POST_INSTALLED=0 $j >/dev/null; then
-@ENABLE_LIBGENDERS_TRUE@			sed -i \
-@ENABLE_LIBGENDERS_TRUE@				-e "s%/var%$RPM_INSTALL_PREFIX1%g" \
-@ENABLE_LIBGENDERS_TRUE@				-e "s%//run%/run%g" \
-@ENABLE_LIBGENDERS_TRUE@				-e "s%/etc%$RPM_INSTALL_PREFIX2%g" \
-@ENABLE_LIBGENDERS_TRUE@				-e "s%/usr%$RPM_INSTALL_PREFIX0%g" \
-@ENABLE_LIBGENDERS_TRUE@				-e "s%$RPM_INSTALL_PREFIX0/bin/test%/usr/bin/test%g" \
-@ENABLE_LIBGENDERS_TRUE@				-e "s%$RPM_INSTALL_PREFIX0/lib64/ovis-libevent2/lib64/%/usr/lib64/ovis-libevent2/lib64/%g" \
-@ENABLE_LIBGENDERS_TRUE@				-e "s%LDMS_POST_INSTALLED=0%LDMS_POST_INSTALLED=1%g" \
-@ENABLE_LIBGENDERS_TRUE@				$j
-@ENABLE_LIBGENDERS_TRUE@		fi
-@ENABLE_LIBGENDERS_TRUE@	done
-@ENABLE_LIBGENDERS_TRUE@fi
-@ENABLE_LIBGENDERS_TRUE@#end initscripts-base
+@ENABLE_LIBGENDERS_TRUE@bash %{_prefix}/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
+@ENABLE_LIBGENDERS_TRUE@	$RPM_INSTALL_PREFIX0 \
+@ENABLE_LIBGENDERS_TRUE@	$RPM_INSTALL_PREFIX2 \
+@ENABLE_LIBGENDERS_TRUE@	$RPM_INSTALL_PREFIX1 \
+@ENABLE_LIBGENDERS_TRUE@	%{_prefix}/share/doc/ovis-@VERSION@/relocation/manifest
+@ENABLE_LIBGENDERS_TRUE@#end initscripts-sysv
 
 
 %package doc
@@ -371,20 +345,11 @@ Doxygen files for ovis package.
 ## %%docdir %{_defaultdocdir}
 %docdir /usr/share/doc
 %post doc
-varrunmans="
-$RPM_INSTALL_PREFIX0/share/man/man5/ldms-attributes.5
-$RPM_INSTALL_PREFIX0/share/man/man8/ldmsd-genders.8
-$RPM_INSTALL_PREFIX0/share/man/man8/ldmsd.8
-"
-for i in $varrunmans; do
-	$RPM_INSTALL_PREFIX/bin/ldms-manpatch.sh $i \
-		-e "s%/var%$RPM_INSTALL_PREFIX1%g" \
-		-e "s%//run%/run%g" \
-		-e "s%/usr%$RPM_INSTALL_PREFIX0%g" \
-		-e "s%$RPM_INSTALL_PREFIX0/bin/test%/usr/bin/test%g" \
-		-e "s%$RPM_INSTALL_PREFIX0/lib64/ovis-libevent2/lib64/%/usr/lib64/ovis-libevent2/lib64/%g" \
-		-e "s%/etc%$RPM_INSTALL_PREFIX2%g"
-done
+bash %{_prefix}/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
+	$RPM_INSTALL_PREFIX0 \
+	$RPM_INSTALL_PREFIX2 \
+	$RPM_INSTALL_PREFIX1 \
+	%{_prefix}/share/doc/ovis-@VERSION@/relocation/manifest
 
 %package python2
 Summary: Python files for LDMS, SOS, and baler
@@ -444,36 +409,29 @@ Requires: ovis >= 3.0.0 python
 
 
 %post
-for i in $RPM_INSTALL_PREFIX/bin/envldms.sh \
-	$RPM_INSTALL_PREFIX/bin/ldms*.sh \
-	$RPM_INSTALL_PREFIX/lib64/ovis-*configvars.sh; do
-	sed -i \
-		-e "s%BUILDDIR=/usr%BUILDDIR=$RPM_INSTALL_PREFIX%g" \
-		-e "s%exec_prefix=/usr%exec_prefix=$RPM_INSTALL_PREFIX%g" \
-		-e "s%libdir=/usr%libdir=$RPM_INSTALL_PREFIX%g" \
-		-e "s%%prefix=/usr%%prefix=$RPM_INSTALL_PREFIX%g" \
-		-e "s%$RPM_INSTALL_PREFIX0/bin/test%/usr/bin/test%g" \
-		-e "s%$RPM_INSTALL_PREFIX0/lib64/ovis-libevent2/lib64/%/usr/lib64/ovis-libevent2/lib64/%g" \
-		$i
-done
+bash %{_prefix}/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
+	$RPM_INSTALL_PREFIX0 \
+	$RPM_INSTALL_PREFIX2 \
+	$RPM_INSTALL_PREFIX1 \
+	%{_prefix}/share/doc/ovis-@VERSION@/relocation/manifest
 
 %post test
-for i in $RPM_INSTALL_PREFIX/bin/ldms-py*.sh; do
-	sed -i \
-		-e "s%BUILDDIR=/usr%BUILDDIR=$RPM_INSTALL_PREFIX%g" \
-		-e "s%exec_prefix=/usr%exec_prefix=$RPM_INSTALL_PREFIX%g" \
-		-e "s%libdir=/usr%libdir=$RPM_INSTALL_PREFIX%g" \
-		-e "s%%prefix=/usr%%prefix=$RPM_INSTALL_PREFIX%g" \
-		-e "s%$RPM_INSTALL_PREFIX0/bin/test%/usr/bin/test%g" \
-		-e "s%$RPM_INSTALL_PREFIX0/lib64/ovis-libevent2/lib64/%/usr/lib64/ovis-libevent2/lib64/%g" \
-		$i
-done
+bash %{_prefix}/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
+	$RPM_INSTALL_PREFIX0 \
+	$RPM_INSTALL_PREFIX2 \
+	$RPM_INSTALL_PREFIX1 \
+	%{_prefix}/share/doc/ovis-@VERSION@/relocation/manifest
 
 %post python2
-@ENABLE_BALER_TRUE@rm -f $RPM_INSTALL_PREFIX/bin/bhquery
-@ENABLE_BALER_TRUE@ln -s $RPM_INSTALL_PREFIX/lib/python*/site-packages/baler/bquery.py $RPM_INSTALL_PREFIX/bin/bhquery
+bash %{_prefix}/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
+	$RPM_INSTALL_PREFIX0 \
+	$RPM_INSTALL_PREFIX2 \
+	$RPM_INSTALL_PREFIX1 \
+	%{_prefix}/share/doc/ovis-@VERSION@/relocation/manifest
 
 %changelog
+* Wed Oct 18 2017 Ben Allan <baallan@sandia.gov> 3.4.4-4
+Cray relocation scheme
 * Wed Apr 26 2017 Ben Allan <baallan@sandia.gov> 3.4.1-1
 Flex array and swig bug patches. Refactor cython dependent bits.
 * Wed Mar 29 2017 Ben Allan <baallan@sandia.gov> 3.4.0-1
