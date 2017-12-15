@@ -2,7 +2,7 @@
 #
 #
 packing=cle6.unstable
-ovis_branch=2017.12.13.mutrino
+ovis_branch=2017.12.13.mutrino-bkp
 sos_branch=master
 NetworkRequires=gitlab.opengridcomputing.com
 #SOSREPO=gitlab@gitlab.opengridcomputing.com:tom/SOS.git
