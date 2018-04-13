@@ -2,15 +2,11 @@
 #
 #
 packing=toss3.unstable
-##ovis_branch=rpm_relocation
-ovis_branch=master
+ovis_branch=backports_for_346_release 
 sos_branch=master
 NetworkRequires=github.com
 #SOSREPO=gitlab@gitlab.opengridcomputing.com:tom/SOS.git
-#OVISREPO=https://github.com/ovis-hpc/ovis.git
-##OVISREPO=gitlab@gitlab.opengridcomputing.com:krehm/ovis.git 
-#OVISREPO=/ascldap/users/baallan/serrano/krehm_ovis
-OVISREPO=gitlab@gitlab.opengridcomputing.com:ovis/ovis.git
+OVISREPO=gitlab@gitlab.opengridcomputing.com:baallan/ovis.git
 
 if test -n "$MODULEPATH"; then
 	module purge
@@ -47,12 +43,13 @@ IFACE_OPTS="
 --enable-ldms-python
 --disable-python
 --enable-libgenders
+--enable-genderssystemd
 "
 BALER_OPTS="
---enable-baler
+--disable-baler
 "
 STORE_OPTS="
---enable-sos
+--disable-sos
 --enable-flatfile
 --enable-csv
 --enable-store
@@ -138,6 +135,11 @@ else
 	git submodule init sos && git submodule update sos && tar cf ../$SOSTAR sos
 fi
 
+patches=""
+for i in $patches; do
+	patch -p1 < ../patches/$i
+	git commit -a -m "add $packing distribution patches"
+done
 if ! test -f ../$SOSTAR; then
         echo archive $SOSTAR must be next to source tree.
         exit 1

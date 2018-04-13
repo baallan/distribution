@@ -1,0 +1,1 @@
+rpm -ivh ./ovis/Tars/ovis-3.4.6/toss3.unstable/RPMS/x86_64/*rpm

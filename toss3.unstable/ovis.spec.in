@@ -100,8 +100,13 @@ make V=1 -j $ncores
 echo TMPPATH %{_tmppath}
 echo BUILDROOT $RPM_BUILD_ROOT
 make DESTDIR=${RPM_BUILD_ROOT} V=1 install
+ls %{buildroot}
+mkdir -p %{buildroot}%{_prefix}
+(cd %{buildroot}%{_prefix}/..; rmdir `basename %{buildroot}%{_prefix}`)
 mv %{buildroot}%{relo_usr} %{buildroot}%{_prefix}
-mv %{buildroot}%{relo_etc} %{buildroot}%{_sysconfdir}
+if test -d  %{buildroot}%{relo_etc}; then
+	mv %{buildroot}%{relo_etc} %{buildroot}%{_sysconfdir}
+fi
 
 # remove unpackaged files from the buildroot
 rm -f $RPM_BUILD_ROOT%{_libdir}/*.la
@@ -110,12 +115,12 @@ rm -f $RPM_BUILD_ROOT%{_libdir}/ovis-ldms/lib*.la
 @ENABLE_BALER_TRUE@rm -f $RPM_BUILD_ROOT%{_prefix}/etc/ovis/eng-dictionary
 rm $RPM_BUILD_ROOT%{_bindir}/test_*
 rm $RPM_BUILD_ROOT%{_bindir}/ldms_ban.sh
-mv $RPM_BUILD_ROOT%{_docdir}/ovis-ldms-*/* $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}/
-@ENABLE_LIBGENDERS_TRUE@mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/init.d
-@ENABLE_LIBGENDERS_TRUE@mkdir -p $RPM_BUILD_ROOT%{_prefix}/lib/systemd/system
-@ENABLE_LIBGENDERS_TRUE@cp $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}/sample_init_scripts/genders/sysv/etc/init.d/ldms* $RPM_BUILD_ROOT%{_sysconfdir}/init.d/
-@ENABLE_LIBGENDERS_TRUE@cp -ar $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}/sample_init_scripts/genders/systemd/etc/* $RPM_BUILD_ROOT%{_sysconfdir}
-@ENABLE_LIBGENDERS_TRUE@cp -r $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}/sample_init_scripts/genders/systemd/services/ldms*.service $RPM_BUILD_ROOT%{_prefix}/lib/systemd/system
+find $RPM_BUILD_ROOT%{_docdir}/ovis-ldms-%{version} -maxdepth 1 -type f -exec mv {} $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}/ \;
+@ENABLE_TOSS_SYSTEMD_TRUE@mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/init.d
+@ENABLE_TOSS_SYSTEMD_TRUE@mkdir -p $RPM_BUILD_ROOT%{_prefix}/lib/systemd/system
+@ENABLE_TOSS_SYSTEMD_TRUE@cp $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}/sample_init_scripts/genders/sysv/etc/init.d/ldms* $RPM_BUILD_ROOT%{_sysconfdir}/init.d/
+@ENABLE_TOSS_SYSTEMD_TRUE@cp -ar $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}/sample_init_scripts/genders/systemd/etc/* $RPM_BUILD_ROOT%{_sysconfdir}
+@ENABLE_TOSS_SYSTEMD_TRUE@cp -r $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}/sample_init_scripts/genders/systemd/services/ldms*.service $RPM_BUILD_ROOT%{_prefix}/lib/systemd/system
 mkdir -p -m 755 $RPM_BUILD_ROOT%{_localstatedir}/log/ldmsd
 mkdir -p -m 755 $RPM_BUILD_ROOT%{_localstatedir}/run/ldmsd
 mkdir -p -m 755 $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/ldms.d/ClusterGenders
@@ -168,10 +173,17 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/*
 %{_bindir}/*
 %{_sbindir}/*
+%{_datadir}/doc/%{name}-%{version}/relocation
 %{_docdir}/%{name}-%{version}/COPYING
 %{_docdir}/%{name}-%{version}/ChangeLog
 %{_docdir}/%{name}-%{version}/AUTHORS
 %exclude %{_bindir}/ldms-py*sh
+%exclude %{_bindir}/ldms-meminfo.sh
+%exclude %{_bindir}/ldms-static-test.sh
+%exclude %{_bindir}/ldmsd-wrapper.sh
+%exclude %{_bindir}/ldmsd-pre-systemd
+%exclude %{_bindir}/ldmsd-pre-sysvinit
+
 @ENABLE_SOS_TRUE@%exclude %{_libdir}/libkey_*
 @ENABLE_SOS_TRUE@%exclude %{_libdir}/libidx_*
 @ENABLE_SOS_TRUE@%exclude %{_bindir}/sos_*
@@ -249,12 +261,15 @@ Requires: ovis = @VERSION@
 Obsoletes: ldms-all-test
 %description test
 This is a collection of test scripts for (LDMS).
-They also serve as examples, but are not usually of interest
-on compute nodes in large clusters.
+They also serve as examples, but are not usually of direct 
+interest on compute nodes in large clusters.
 
 %files test
 %defattr(-,root,root)
 %{_bindir}/ldms-py*sh
+%{_bindir}/ldms-meminfo.sh
+%{_bindir}/ldms-static-test.sh
+%{_datadir}/doc/ovis-ldms-%{version}/examples/static-test
 #end test
 
 # initscripts
@@ -272,60 +287,64 @@ control file, use of libgenders can be bypassed.
 %files initscripts-base
 %defattr(-,root,root)
 @ENABLE_BALER_TRUE@%config(noreplace) %{_sysconfdir}/baler/*
-@ENABLE_LIBGENDERS_TRUE@%config(noreplace) %{_sysconfdir}/sysconfig/*
-@ENABLE_LIBGENDERS_TRUE@%post initscripts-base
+@ENABLE_TOSS_SYSTEMD_TRUE@%{_sysconfdir}/sysconfig/*
+@ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/sysconfig/ldms.d/ldmsd.local.conf
+@ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/sysconfig/ldms.d/ClusterSecrets/ldmsauth.conf
+@ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/sysconfig/ldms.d/ClusterGenders/genders.local
+@ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/sysconfig/ldms.d/ClusterGenders/genders.agg
+@ENABLE_TOSS_SYSTEMD_TRUE@%{_bindir}/ldmsd-wrapper.sh
+@ENABLE_TOSS_SYSTEMD_TRUE@%post initscripts-base
 #  bash $RELO_DIR/relocate-paths.sh $USR $ETC $VAR $RELO_DIR/manifest
-bash %{_prefix}/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
+bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
 	$RPM_INSTALL_PREFIX0 \
 	$RPM_INSTALL_PREFIX2 \
 	$RPM_INSTALL_PREFIX1 \
-	%{_prefix}/share/doc/ovis-@VERSION@/relocation/manifest
+	$RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/manifest
 
 #end initscripts-base
 
-@ENABLE_LIBGENDERS_TRUE@%package initscripts-systemd
-@ENABLE_LIBGENDERS_TRUE@Summary: LDMS systemd scripts for libgenders control of %{name}
-@ENABLE_LIBGENDERS_TRUE@Group: %{ldms_grp}
-@ENABLE_LIBGENDERS_TRUE@Requires: ovis = @VERSION@ ovis-initscripts-base
-@ENABLE_LIBGENDERS_TRUE@%description initscripts-systemd
-@ENABLE_LIBGENDERS_TRUE@This is the libgenders based systemd scripts for LDMS daemons.
-@ENABLE_LIBGENDERS_TRUE@Users normally provide information via /etc/genders (or alternate file)
-@ENABLE_LIBGENDERS_TRUE@to make these scripts operate. They are required to fail out of the box.
-@ENABLE_LIBGENDERS_TRUE@
-@ENABLE_LIBGENDERS_TRUE@%files initscripts-systemd
-@ENABLE_LIBGENDERS_TRUE@%defattr(-,root,root)
-@ENABLE_LIBGENDERS_TRUE@%config(noreplace) %{_prefix}/lib/systemd/system/ldmsd*.service
-@ENABLE_LIBGENDERS_TRUE@%config(noreplace) %{_bindir}/ldmsd-pre-systemd
-@ENABLE_LIBGENDERS_TRUE@%post initscripts-systemd
-@ENABLE_LIBGENDERS_TRUE@bash %{_prefix}/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
-@ENABLE_LIBGENDERS_TRUE@	$RPM_INSTALL_PREFIX0 \
-@ENABLE_LIBGENDERS_TRUE@	$RPM_INSTALL_PREFIX2 \
-@ENABLE_LIBGENDERS_TRUE@	$RPM_INSTALL_PREFIX1 \
-@ENABLE_LIBGENDERS_TRUE@	%{_prefix}/share/doc/ovis-@VERSION@/relocation/manifest
-@ENABLE_LIBGENDERS_TRUE@#end initscripts-systemd
+@ENABLE_TOSS_SYSTEMD_TRUE@%package initscripts-systemd
+@ENABLE_TOSS_SYSTEMD_TRUE@Summary: LDMS systemd scripts for libgenders control of %{name}
+@ENABLE_TOSS_SYSTEMD_TRUE@Group: %{ldms_grp}
+@ENABLE_TOSS_SYSTEMD_TRUE@Requires: ovis = @VERSION@ ovis-initscripts-base
+@ENABLE_TOSS_SYSTEMD_TRUE@%description initscripts-systemd
+@ENABLE_TOSS_SYSTEMD_TRUE@This is the libgenders based systemd scripts for LDMS daemons.
+@ENABLE_TOSS_SYSTEMD_TRUE@Users normally provide information via /etc/genders (or alternate file)
+@ENABLE_TOSS_SYSTEMD_TRUE@to make these scripts operate. They are required to fail out of the box.
+@ENABLE_TOSS_SYSTEMD_TRUE@
+@ENABLE_TOSS_SYSTEMD_TRUE@%files initscripts-systemd
+@ENABLE_TOSS_SYSTEMD_TRUE@%defattr(-,root,root)
+@ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_prefix}/lib/systemd/system/ldmsd*.service
+@ENABLE_TOSS_SYSTEMD_TRUE@%config %{_bindir}/ldmsd-pre-systemd
+@ENABLE_TOSS_SYSTEMD_TRUE@%post initscripts-systemd
+@ENABLE_TOSS_SYSTEMD_TRUE@bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
+@ENABLE_TOSS_SYSTEMD_TRUE@	$RPM_INSTALL_PREFIX0 \
+@ENABLE_TOSS_SYSTEMD_TRUE@	$RPM_INSTALL_PREFIX2 \
+@ENABLE_TOSS_SYSTEMD_TRUE@	$RPM_INSTALL_PREFIX1 \
+@ENABLE_TOSS_SYSTEMD_TRUE@	$RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/manifest
+@ENABLE_TOSS_SYSTEMD_TRUE@#end initscripts-systemd
 
+@ENABLE_TOSS_SYSTEMD_TRUE@# initscripts-sysv
+@ENABLE_TOSS_SYSTEMD_TRUE@%package initscripts-sysv
+@ENABLE_TOSS_SYSTEMD_TRUE@Summary: LDMS sysv init scripts for libgenders control of %{name}
+@ENABLE_TOSS_SYSTEMD_TRUE@Group: %{ldms_grp}
+@ENABLE_TOSS_SYSTEMD_TRUE@Requires: ovis = @VERSION@ ovis-initscripts-base
+@ENABLE_TOSS_SYSTEMD_TRUE@%description initscripts-sysv
+@ENABLE_TOSS_SYSTEMD_TRUE@This is the libgenders based sysv init scripts for LDMS daemons.
+@ENABLE_TOSS_SYSTEMD_TRUE@Users must provide information via /etc/genders (or alternate file)
+@ENABLE_TOSS_SYSTEMD_TRUE@to make these scripts operate. They are required to fail out of the box.
 
-@ENABLE_LIBGENDERS_TRUE@# initscripts-sysv
-@ENABLE_LIBGENDERS_TRUE@%package initscripts-sysv
-@ENABLE_LIBGENDERS_TRUE@Summary: LDMS sysv init scripts for libgenders control of %{name}
-@ENABLE_LIBGENDERS_TRUE@Group: %{ldms_grp}
-@ENABLE_LIBGENDERS_TRUE@Requires: ovis = @VERSION@ ovis-initscripts-base
-@ENABLE_LIBGENDERS_TRUE@%description initscripts-sysv
-@ENABLE_LIBGENDERS_TRUE@This is the libgenders based sysv init scripts for LDMS daemons.
-@ENABLE_LIBGENDERS_TRUE@Users must provide information via /etc/genders (or alternate file)
-@ENABLE_LIBGENDERS_TRUE@to make these scripts operate. They are required to fail out of the box.
-
-@ENABLE_LIBGENDERS_TRUE@%files initscripts-sysv
-@ENABLE_LIBGENDERS_TRUE@%defattr(-,root,root)
-@ENABLE_LIBGENDERS_TRUE@%config(noreplace) %{_sysconfdir}/init.d/ldms*
-@ENABLE_LIBGENDERS_TRUE@%config(noreplace) %{_bindir}/ldmsd-pre-sysvinit
-@ENABLE_LIBGENDERS_TRUE@%post initscripts-sysv
-@ENABLE_LIBGENDERS_TRUE@bash %{_prefix}/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
-@ENABLE_LIBGENDERS_TRUE@	$RPM_INSTALL_PREFIX0 \
-@ENABLE_LIBGENDERS_TRUE@	$RPM_INSTALL_PREFIX2 \
-@ENABLE_LIBGENDERS_TRUE@	$RPM_INSTALL_PREFIX1 \
-@ENABLE_LIBGENDERS_TRUE@	%{_prefix}/share/doc/ovis-@VERSION@/relocation/manifest
-@ENABLE_LIBGENDERS_TRUE@#end initscripts-sysv
+@ENABLE_TOSS_SYSTEMD_TRUE@%files initscripts-sysv
+@ENABLE_TOSS_SYSTEMD_TRUE@%defattr(-,root,root)
+@ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/init.d/ldms*
+@ENABLE_TOSS_SYSTEMD_TRUE@%config %{_bindir}/ldmsd-pre-sysvinit
+@ENABLE_TOSS_SYSTEMD_TRUE@%post initscripts-sysv
+@ENABLE_TOSS_SYSTEMD_TRUE@bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
+@ENABLE_TOSS_SYSTEMD_TRUE@	$RPM_INSTALL_PREFIX0 \
+@ENABLE_TOSS_SYSTEMD_TRUE@	$RPM_INSTALL_PREFIX2 \
+@ENABLE_TOSS_SYSTEMD_TRUE@	$RPM_INSTALL_PREFIX1 \
+@ENABLE_TOSS_SYSTEMD_TRUE@	$RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/manifest
+@ENABLE_TOSS_SYSTEMD_TRUE@#end initscripts-sysv
 
 
 %package doc
@@ -339,6 +358,8 @@ Doxygen files for ovis package.
 %defattr(-,root,root)
 %{_mandir}/*/*
 %{_datadir}/doc/%{name}-%{version}
+%exclude %{_datadir}/doc/%{name}-%{version}/relocation
+%exclude %{_datadir}/doc/ovis-ldms-%{version}/examples
 ## %{_datadir}/doc/ovis-lib-%{version}
 @ENABLE_SOS_TRUE@# %{_datadir}/doc/sos
 @ENABLE_BALER_TRUE@# %{_datadir}/doc/baler
@@ -375,13 +396,13 @@ Requires: ovis >= 3.0.0 python
 @ENABLE_SOS_TRUE@%package sosdb
 @ENABLE_SOS_TRUE@Summary: SOS database package
 @ENABLE_SOS_TRUE@Group: %{ldms_grp}
-# install requires
+@ENABLE_SOS_TRUE@# install requires
 @ENABLE_SOS_TRUE@Requires: ovis >= 3.0.0
-@ENABLE_PYTHON_TRUE@Requires: Cython
-@ENABLE_PYTHON_TRUE@@ENABLE_SOS_TRUE@Requires: numpy
-# build requires
-@ENABLE_SWIG_TRUE@BuildRequires: python python-devel
-@ENABLE_SWIG_TRUE@BuildRequires: swig
+@ENABLE_SOS_TRUE@@ENABLE_PYTHON_TRUE@Requires: Cython
+@ENABLE_SOS_TRUE@@ENABLE_PYTHON_TRUE@@ENABLE_SOS_TRUE@Requires: numpy
+@ENABLE_SOS_TRUE@# build requires
+@ENABLE_SOS_TRUE@@ENABLE_SWIG_TRUE@BuildRequires: python python-devel
+@ENABLE_SOS_TRUE@@ENABLE_SWIG_TRUE@BuildRequires: swig
 @ENABLE_SOS_TRUE@%description sosdb
 @ENABLE_SOS_TRUE@This is a collection of SOS database utilities for LDMS.
 @ENABLE_SOS_TRUE@
@@ -409,25 +430,25 @@ Requires: ovis >= 3.0.0 python
 
 
 %post
-bash %{_prefix}/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
+bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
 	$RPM_INSTALL_PREFIX0 \
 	$RPM_INSTALL_PREFIX2 \
 	$RPM_INSTALL_PREFIX1 \
-	%{_prefix}/share/doc/ovis-@VERSION@/relocation/manifest
+	$RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/manifest
 
 %post test
-bash %{_prefix}/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
+bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
 	$RPM_INSTALL_PREFIX0 \
 	$RPM_INSTALL_PREFIX2 \
 	$RPM_INSTALL_PREFIX1 \
-	%{_prefix}/share/doc/ovis-@VERSION@/relocation/manifest
+	$RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/manifest
 
 %post python2
-bash %{_prefix}/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
+bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
 	$RPM_INSTALL_PREFIX0 \
 	$RPM_INSTALL_PREFIX2 \
 	$RPM_INSTALL_PREFIX1 \
-	%{_prefix}/share/doc/ovis-@VERSION@/relocation/manifest
+	$RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/manifest
 
 %changelog
 * Wed Oct 18 2017 Ben Allan <baallan@sandia.gov> 3.4.4-4
