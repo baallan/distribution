@@ -27,7 +27,7 @@
 Summary: OVIS Commands and Libraries
 Name: ovis
 Version: @VERSION@
-Release: serrano_%{build_timestamp}%{?dist}
+Release: 0.2%{?dist}
 License: GPLv2 or BSD
 Group: %{ldms_all}
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
@@ -89,8 +89,8 @@ Configured for relocation with @ac_configure_args@
 echo bTMPPATH %{_tmppath}
 rm -rf $RPM_BUILD_ROOT
 echo bBUILDROOT $RPM_BUILD_ROOT
-#export CFLAGS="@CFLAGS@ %{optflags}"
-export CFLAGS="@CFLAGS@"
+export CFLAGS="@CFLAGS@ %{optflags} -O1"
+#export CFLAGS="@CFLAGS@"
 ./configure @ac_configure_args@ --localstatedir=%{relo_var} --prefix=%{relo_usr} --exec-prefix=%{relo_usr} --bindir=%{relo_usr}/bin --sbindir=%{relo_usr}/sbin --sysconfdir=%{relo_etc} --datadir=%{relo_usr}/share --includedir=%{relo_usr}/include --libdir='${exec_prefix}/lib64' --libexecdir=%{relo_usr}/libexec --mandir=%{relo_usr}/share/man --infodir=%{relo_usr}/share/info --sharedstatedir=%{relo_var}/lib
 
 ncores=`grep -c ^processor /proc/cpuinfo`
@@ -322,7 +322,7 @@ bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh 
 @ENABLE_TOSS_SYSTEMD_TRUE@
 @ENABLE_TOSS_SYSTEMD_TRUE@%files initscripts-systemd
 @ENABLE_TOSS_SYSTEMD_TRUE@%defattr(-,root,root)
-@ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_prefix}/lib/systemd/system/ldmsd*.service
+@ENABLE_TOSS_SYSTEMD_TRUE@%config %{_prefix}/lib/systemd/system/ldmsd*.service
 @ENABLE_TOSS_SYSTEMD_TRUE@%config %{_bindir}/ldmsd-pre-systemd
 @ENABLE_TOSS_SYSTEMD_TRUE@%post initscripts-systemd
 @ENABLE_TOSS_SYSTEMD_TRUE@bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
@@ -344,7 +344,11 @@ bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh 
 
 @ENABLE_TOSS_SYSTEMD_TRUE@%files initscripts-sysv
 @ENABLE_TOSS_SYSTEMD_TRUE@%defattr(-,root,root)
-@ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/init.d/ldms*
+@ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/init.d/ldms.local.conf
+@ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/init.d/ldms.agg.conf
+@ENABLE_TOSS_SYSTEMD_TRUE@%config %{_sysconfdir}/init.d/ldmsd
+@ENABLE_TOSS_SYSTEMD_TRUE@%config %{_sysconfdir}/init.d/ldms-functions
+
 @ENABLE_TOSS_SYSTEMD_TRUE@%config %{_bindir}/ldmsd-pre-sysvinit
 @ENABLE_TOSS_SYSTEMD_TRUE@%post initscripts-sysv
 @ENABLE_TOSS_SYSTEMD_TRUE@bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
@@ -459,8 +463,8 @@ bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh 
 	$RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/manifest
 
 %changelog
-* Fri Apr 20 2018 Ben Allan <baallan@sandia.gov> 3.4.6-0
-Wrapper file for sbin exec relocation support.
+* Thu Apr 29 2018 Ben Allan <baallan@sandia.gov> 3.4.6-0
+SOS/baler v3 deprecation. Wrapper file for sbin exec relocation support.
 * Wed Oct 18 2017 Ben Allan <baallan@sandia.gov> 3.4.4-4
 Cray relocation scheme
 * Wed Apr 26 2017 Ben Allan <baallan@sandia.gov> 3.4.1-1
