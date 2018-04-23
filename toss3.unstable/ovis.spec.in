@@ -181,6 +181,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_bindir}/*
 %{_sbindir}/*
 %{_sbindir}/.ldms*
+#%{_sbindir}/.ldms-wrapper
 %{_datadir}/doc/%{name}-%{version}/relocation
 %{_docdir}/%{name}-%{version}/COPYING
 %{_docdir}/%{name}-%{version}/ChangeLog
@@ -297,10 +298,12 @@ control file, use of libgenders can be bypassed.
 @ENABLE_BALER_TRUE@%config(noreplace) %{_sysconfdir}/baler/*
 @ENABLE_TOSS_SYSTEMD_TRUE@%{_sysconfdir}/sysconfig/*
 @ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/sysconfig/ldms.d/ldmsd.local.conf
+@ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/sysconfig/ldms.d/ldmsd.agg.conf
 @ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/sysconfig/ldms.d/ClusterSecrets/ldmsauth.conf
 @ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/sysconfig/ldms.d/ClusterGenders/genders.local
 @ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/sysconfig/ldms.d/ClusterGenders/genders.agg
 @ENABLE_TOSS_SYSTEMD_TRUE@%{_bindir}/ldmsd-wrapper.sh
+
 @ENABLE_TOSS_SYSTEMD_TRUE@%post initscripts-base
 #  bash $RELO_DIR/relocate-paths.sh $USR $ETC $VAR $RELO_DIR/manifest
 bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
@@ -344,11 +347,7 @@ bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh 
 
 @ENABLE_TOSS_SYSTEMD_TRUE@%files initscripts-sysv
 @ENABLE_TOSS_SYSTEMD_TRUE@%defattr(-,root,root)
-@ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/init.d/ldms.local.conf
-@ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/init.d/ldms.agg.conf
-@ENABLE_TOSS_SYSTEMD_TRUE@%config %{_sysconfdir}/init.d/ldmsd
-@ENABLE_TOSS_SYSTEMD_TRUE@%config %{_sysconfdir}/init.d/ldms-functions
-
+@ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/init.d/ldms*
 @ENABLE_TOSS_SYSTEMD_TRUE@%config %{_bindir}/ldmsd-pre-sysvinit
 @ENABLE_TOSS_SYSTEMD_TRUE@%post initscripts-sysv
 @ENABLE_TOSS_SYSTEMD_TRUE@bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
@@ -463,7 +462,7 @@ bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh 
 	$RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/manifest
 
 %changelog
-* Thu Apr 29 2018 Ben Allan <baallan@sandia.gov> 3.4.6-0
+* Thu Apr 19 2018 Ben Allan <baallan@sandia.gov> 3.4.6-0
 SOS/baler v3 deprecation. Wrapper file for sbin exec relocation support.
 * Wed Oct 18 2017 Ben Allan <baallan@sandia.gov> 3.4.4-4
 Cray relocation scheme
