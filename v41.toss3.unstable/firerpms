@@ -2,11 +2,12 @@
 #
 #
 packing=v41.toss3.unstable
-ovis_branch=v41_cts1x
+ovis_branch=ldmsd_usage_systemd_master
 sos_branch=master
 NetworkRequires=github.com
 #SOSREPO=gitlab@gitlab.opengridcomputing.com:tom/SOS.git
 OVISREPO=gitlab@gitlab.opengridcomputing.com:baallan/ovis.git
+#OVISREPO=/home/baallan/ovis/repos/buildfiles_3_18
 
 if test -n "$MODULEPATH"; then
 	module purge
@@ -46,14 +47,14 @@ IFACE_OPTS="
 --enable-genderssystemd
 "
 STORE_OPTS="
---disable-sos
+--enable-sos
 --enable-flatfile
 --enable-csv
 --enable-store
---disable-rabbitv3
+--enable-rabbitv3
 "
 SAMPLER_OPTS="
---disable-kokkos
+--enable-kokkos
 --disable-cray_power_sampler
 --disable-cray_system_sampler
 --disable-aries-gpcdr
@@ -69,6 +70,7 @@ SAMPLER_OPTS="
 --disable-switchx
 --enable-sysclassib
 --enable-opa2
+--enable-jobinfo
 --enable-perf
 --enable-jobid
 --enable-sensors

@@ -2,7 +2,7 @@
 #
 #
 packing=toss3.unstable
-ovis_branch=backports_for_346_release 
+ovis_branch=wrapper_location_nicer_34 
 sos_branch=master
 NetworkRequires=github.com
 #SOSREPO=gitlab@gitlab.opengridcomputing.com:tom/SOS.git
@@ -70,6 +70,7 @@ SAMPLER_OPTS="
 --disable-generic_sampler
 --disable-switchx
 --enable-sysclassib
+--enable-opa2
 --enable-perf
 --enable-jobid
 --enable-sensors

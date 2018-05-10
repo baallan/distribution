@@ -111,8 +111,9 @@ fi
 # sbin wrapper rework
 for b in $RPM_BUILD_ROOT%{_sbindir}/ldms*; do
 	bn=`basename $b`
+	echo wrapping $bn
 	dn=`dirname $b`
-	mv $b $dn/.$bn
+	mv $b $RPM_BUILD_ROOT%{_libdir}/ovis-ldms/$bn
 	(cd $dn; ln -s .ldms-wrapper $bn)
 done
 # remove unpackaged files from the buildroot
@@ -347,7 +348,7 @@ bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh 
 
 @ENABLE_TOSS_SYSTEMD_TRUE@%files initscripts-sysv
 @ENABLE_TOSS_SYSTEMD_TRUE@%defattr(-,root,root)
-@ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/init.d/ldms*
+@ENABLE_TOSS_SYSTEMD_TRUE@%config %{_sysconfdir}/init.d/ldms*
 @ENABLE_TOSS_SYSTEMD_TRUE@%config %{_bindir}/ldmsd-pre-sysvinit
 @ENABLE_TOSS_SYSTEMD_TRUE@%post initscripts-sysv
 @ENABLE_TOSS_SYSTEMD_TRUE@bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \

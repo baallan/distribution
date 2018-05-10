@@ -41,6 +41,7 @@ Requires: libevent >= 2.0.21
 @ENABLE_LIBGENDERS_TRUE@Requires: genders
 @ENABLE_SYSCLASSIB_TRUE@Requires: libibmad libibumad
 @ENABLE_RDMA_TRUE@Requires: librdmacm libibverbs
+@ENABLE_KOKKOS_TRUE@Requires: bison-devel flex-devel
 
 BuildRequires: gettext-devel gcc glib2-devel
 @ENABLE_DOC_TRUE@BuildRequires: doxygen
@@ -53,6 +54,7 @@ BuildRequires: libevent libevent-devel
 @ENABLE_SWIG_TRUE@BuildRequires: swig
 @ENABLE_LIBGENDERS_TRUE@BuildRequires: boost-devel
 @ENABLE_LIBGENDERS_TRUE@BuildRequires: genders
+@ENABLE_KOKKOS_TRUE@BuildRequires: bison bison-devel flex flex-devel
 Url: http://ovis.ca.sandia.gov/
 
 # relocation prefix0 for file installs other than sysconfdir & localstatedir
@@ -89,8 +91,8 @@ Configured for relocation with @ac_configure_args@
 echo bTMPPATH %{_tmppath}
 rm -rf $RPM_BUILD_ROOT
 echo bBUILDROOT $RPM_BUILD_ROOT
-#export CFLAGS="@CFLAGS@ %{optflags}"
-export CFLAGS="@CFLAGS@"
+export CFLAGS="@CFLAGS@ %{optflags} -O1"
+#export CFLAGS="@CFLAGS@"
 ./configure @ac_configure_args@ --localstatedir=%{relo_var} --prefix=%{relo_usr} --exec-prefix=%{relo_usr} --bindir=%{relo_usr}/bin --sbindir=%{relo_usr}/sbin --sysconfdir=%{relo_etc} --datadir=%{relo_usr}/share --includedir=%{relo_usr}/include --libdir='${exec_prefix}/lib64' --libexecdir=%{relo_usr}/libexec --mandir=%{relo_usr}/share/man --infodir=%{relo_usr}/share/info --sharedstatedir=%{relo_var}/lib
 
 ncores=`grep -c ^processor /proc/cpuinfo`
@@ -108,6 +110,14 @@ if test -d  %{buildroot}%{relo_etc}; then
 	mv %{buildroot}%{relo_etc} %{buildroot}%{_sysconfdir}
 fi
 
+# sbin wrapper rework
+for b in $RPM_BUILD_ROOT%{_sbindir}/ldms*; do
+	bn=`basename $b`
+	echo wrapping $bn
+	dn=`dirname $b`
+	mv $b $RPM_BUILD_ROOT%{_libdir}/ovis-ldms/$bn
+	(cd $dn; ln -s .ldms-wrapper $bn)
+done
 # remove unpackaged files from the buildroot
 rm -f $RPM_BUILD_ROOT%{_libdir}/*.la
 rm -f $RPM_BUILD_ROOT%{_libdir}/ovis-ldms/lib*.la
@@ -136,6 +146,8 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/*
 %{_bindir}/*
 %{_sbindir}/*
+%{_sbindir}/.ldms*
+#%{_sbindir}/.ldms-wrapper
 %{_datadir}/doc/%{name}-%{version}/relocation
 %{_docdir}/%{name}-%{version}/COPYING
 %{_docdir}/%{name}-%{version}/ChangeLog
@@ -209,6 +221,7 @@ control file, use of libgenders can be bypassed.
 %defattr(-,root,root)
 @ENABLE_TOSS_SYSTEMD_TRUE@%{_sysconfdir}/sysconfig/*
 @ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/sysconfig/ldms.d/ldmsd.local.conf
+@ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/sysconfig/ldms.d/ldmsd.agg.conf
 @ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/sysconfig/ldms.d/ClusterSecrets/ldmsauth.conf
 @ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/sysconfig/ldms.d/ClusterGenders/genders.local
 @ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/sysconfig/ldms.d/ClusterGenders/genders.agg
