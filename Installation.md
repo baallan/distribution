@@ -5,9 +5,9 @@ Custom builds from source to enable these features are possible but are not deta
 
 ## TOSS 3
 
-Supported features: LDMS, Baler, SOS database, LDMS SOS storage plugin, genders, Infinband, RDMA, Lustre, Slurm jobid collection, Python library wrappers.
+Supported features: LDMS, libgenders, Omnipath, Infiniband, and Cray RDMA, Lustre, jobid collection, Python library wrappers.
 
-Unsupported features: SOS Python interfaces. (Cython lacking)
+Unsupported features: SOS, Baler. 
 
 Relocations available (specify identical relocations to all packages when installing):
 /var, /etc, /usr. --relocate is supported and --prefix is not.
@@ -24,19 +24,17 @@ Recommended additional rpms for login nodes:
 * ovis-doc
 
 Recommended additional rpms for storage hosts:
-* ovis-sosdb
-* ovis-ldms-sos
+* none
 
 Recommended for analytical environments:
-* ovis-baler
 * ovis-python2
 
 
 ## TOSS 2
 
-Supported features: LDMS, SOS database, LDMS SOS storage plugin, genders, Infinband, RDMA, Lustre, Slurm jobid collection.
+Supported features: LDMS, libgenders, Infinband, RDMA, Lustre, jobid collection.
 
-Unsupported features: Baler, SOS Python interfaces, Python library wrappers. (Python 2.7, Cython lacking)
+Unsupported features: Baler, SOS, Python library wrappers. (Python 2.7 lacking)
 
 Relocations available (specify identical relocations to all packages when installing):
 /var, /etc, /usr. --relocate is supported and --prefix is not.
@@ -53,8 +51,7 @@ Recommended additional rpms for login nodes:
 * ovis-doc
 
 Recommended additional rpms for storage hosts:
-* ovis-sosdb
-* ovis-ldms-sos
+* none
 
 ## CLE6
 
@@ -64,7 +61,7 @@ Stable RPMS have not been released yet.
 
 Supported features: LDMS, Baler, SOS database, LDMS SOS storage plugin, Python library wrappers.
 
-Unsupported features: genders, Infinband, RDMA, Lustre, Slurm jobid collection.
+Unsupported features: genders, Infinband, RDMA, Lustre, jobid collection.
 
 Relocations available (but not recommended) when not using yum are:
 /var, /etc, /usr. --relocate is supported and --prefix is not.

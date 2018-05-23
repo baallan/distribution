@@ -1,3 +1,8 @@
+OVIS v3.4.6 is a features and bug fix release. 
+
+See the change notes at
+https://github.com/ovis-hpc/ovis/releases/tag/v3.4.6
+
 OVIS v3.4.2 is a patch for improved usability.
 
 New features:
