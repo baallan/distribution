@@ -27,7 +27,7 @@
 Summary: OVIS Commands and Libraries
 Name: ovis
 Version: @VERSION@
-Release: 1%{?dist}
+Release: cts1x_%{build_timestamp}%{?dist}
 License: GPLv2 or BSD
 Group: %{ldms_all}
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
@@ -41,6 +41,7 @@ Requires: libevent >= 2.0.21
 @ENABLE_LIBGENDERS_TRUE@Requires: genders
 @ENABLE_SYSCLASSIB_TRUE@Requires: libibmad libibumad
 @ENABLE_RDMA_TRUE@Requires: librdmacm libibverbs
+@ENABLE_KOKKOS_TRUE@Requires: bison-devel flex-devel
 
 BuildRequires: gettext-devel gcc glib2-devel
 @ENABLE_DOC_TRUE@BuildRequires: doxygen
@@ -53,6 +54,7 @@ BuildRequires: libevent libevent-devel
 @ENABLE_SWIG_TRUE@BuildRequires: swig
 @ENABLE_LIBGENDERS_TRUE@BuildRequires: boost-devel
 @ENABLE_LIBGENDERS_TRUE@BuildRequires: genders
+@ENABLE_KOKKOS_TRUE@BuildRequires: bison bison-devel flex flex-devel
 Url: http://ovis.ca.sandia.gov/
 
 # relocation prefix0 for file installs other than sysconfdir & localstatedir
@@ -80,6 +82,7 @@ Configured for relocation with @ac_configure_args@
 --sharedstatedir=%{relo_var}/lib
 --localstatedir=%{relo_var}
 
+%dump
 
 %prep
 %setup -q
@@ -89,6 +92,7 @@ echo bTMPPATH %{_tmppath}
 rm -rf $RPM_BUILD_ROOT
 echo bBUILDROOT $RPM_BUILD_ROOT
 export CFLAGS="@CFLAGS@ %{optflags} -O1"
+#export CFLAGS="@CFLAGS@"
 ./configure @ac_configure_args@ --localstatedir=%{relo_var} --prefix=%{relo_usr} --exec-prefix=%{relo_usr} --bindir=%{relo_usr}/bin --sbindir=%{relo_usr}/sbin --sysconfdir=%{relo_etc} --datadir=%{relo_usr}/share --includedir=%{relo_usr}/include --libdir='${exec_prefix}/lib64' --libexecdir=%{relo_usr}/libexec --mandir=%{relo_usr}/share/man --infodir=%{relo_usr}/share/info --sharedstatedir=%{relo_var}/lib
 
 ncores=`grep -c ^processor /proc/cpuinfo`
@@ -117,8 +121,6 @@ done
 # remove unpackaged files from the buildroot
 rm -f $RPM_BUILD_ROOT%{_libdir}/*.la
 rm -f $RPM_BUILD_ROOT%{_libdir}/ovis-ldms/lib*.la
-# fix in subsequent after sorting use of sysconfdir or share/baler in baler
-@ENABLE_BALER_TRUE@rm -f $RPM_BUILD_ROOT%{_prefix}/etc/ovis/eng-dictionary
 rm $RPM_BUILD_ROOT%{_bindir}/test_*
 rm $RPM_BUILD_ROOT%{_bindir}/ldms_ban.sh
 find $RPM_BUILD_ROOT%{_docdir}/ovis-ldms-%{version} -maxdepth 1 -type f -exec mv {} $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}/ \;
@@ -133,14 +135,6 @@ mkdir -p -m 755 $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/ldms.d/ClusterGenders
 mkdir -p -m 755 $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/ldms.d/ClusterSecrets
 mkdir -p -m 755 $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/ldms.d/plugins-conf
 
-# relocate files from symlinks that are broken if relocated
-@ENABLE_BALER_TRUE@cp $RPM_BUILD_ROOT%{_prefix}/lib/python2.7/site-packages/baler/bhquery.py $RPM_BUILD_ROOT%{_bindir}/bhquery.real
-@ENABLE_BALER_TRUE@cp $RPM_BUILD_ROOT%{_prefix}/lib/python2.7/site-packages/abhttp/bclient.py $RPM_BUILD_ROOT%{_bindir}/bclient.real
-@ENABLE_BALER_TRUE@rm $RPM_BUILD_ROOT%{_bindir}/bhquery
-@ENABLE_BALER_TRUE@rm $RPM_BUILD_ROOT%{_bindir}/bclient
-@ENABLE_BALER_TRUE@mv $RPM_BUILD_ROOT%{_bindir}/bhquery.real $RPM_BUILD_ROOT%{_bindir}/bhquery
-@ENABLE_BALER_TRUE@mv $RPM_BUILD_ROOT%{_bindir}/bclient.real $RPM_BUILD_ROOT%{_bindir}/bclient
-
 echo making manifest
 ./util/relocation/bld_manifest.sh %{buildroot}%{_prefix} %{buildroot}%{_sysconfdir} %{buildroot}%{_localstatedir} > %{buildroot}%{_prefix}/share/doc/ovis-@VERSION@/relocation/manifest
 
@@ -149,33 +143,6 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root)
-@ENABLE_BALER_TRUE@%exclude %{_bindir}/bhquery
-@ENABLE_BALER_TRUE@%exclude %{_sbindir}/balerd
-@ENABLE_BALER_TRUE@%exclude %{_sbindir}/bhttpd
-@ENABLE_BALER_TRUE@%exclude %{_bindir}/baler-pedigree
-@ENABLE_BALER_TRUE@%exclude %{_bindir}/bassoc*
-@ENABLE_BALER_TRUE@%exclude %{_bindir}/bclient
-@ENABLE_BALER_TRUE@%exclude %{_bindir}/bcsv2bnumvec
-@ENABLE_BALER_TRUE@%exclude %{_bindir}/b*test
-@ENABLE_BALER_TRUE@%exclude %{_bindir}/bmap_dump
-@ENABLE_BALER_TRUE@%exclude %{_bindir}/bmeta_cluster
-@ENABLE_BALER_TRUE@%exclude %{_bindir}/bnumvec
-@ENABLE_BALER_TRUE@%exclude %{_bindir}/bquery
-@ENABLE_BALER_TRUE@%exclude %{_bindir}/bsos_part_modify
-@ENABLE_BALER_TRUE@%exclude %{_bindir}/btkn_dump
-@ENABLE_BALER_TRUE@%exclude %{_libdir}/libbaler.*
-@ENABLE_BALER_TRUE@%exclude %{_libdir}/libbassocimg.*
-@ENABLE_BALER_TRUE@%exclude %{_libdir}/libbin_metric.*
-@ENABLE_BALER_TRUE@%exclude %{_libdir}/libbin_rsyslog_tcp.*
-@ENABLE_BALER_TRUE@%exclude %{_libdir}/libbin_test.*
-@ENABLE_BALER_TRUE@%exclude %{_libdir}/libbout_me.*
-@ENABLE_BALER_TRUE@%exclude %{_libdir}/libbout_sos.*
-@ENABLE_BALER_TRUE@%exclude %{_libdir}/libbout_sos_img.*
-@ENABLE_BALER_TRUE@%exclude %{_libdir}/libbout_sos_msg.*
-@ENABLE_BALER_TRUE@%exclude %{_libdir}/libbquery.*
-@ENABLE_BALER_TRUE@%exclude %{_libdir}/libbsos_img.*
-@ENABLE_BALER_TRUE@%exclude %{_libdir}/libbsos_msg.*
-
 %{_libdir}/*
 %{_bindir}/*
 %{_sbindir}/*
@@ -200,48 +167,6 @@ rm -rf $RPM_BUILD_ROOT
 @ENABLE_SOS_TRUE@%exclude %{_libdir}/ovis-ldms/libstore_sos*
 @ENABLE_SOS_TRUE@%exclude %{_sbindir}/ldmsd_sos_init
 #end core
-
-@ENABLE_BALER_TRUE@# baler
-@ENABLE_BALER_TRUE@%package baler
-@ENABLE_BALER_TRUE@Summary: OVIS Baler tools
-@ENABLE_BALER_TRUE@Group: %{ldms_grp}
-@ENABLE_BALER_TRUE@Requires: ovis = @VERSION@
-@ENABLE_BALER_TRUE@Requires: libyaml python
-@ENABLE_BALER_TRUE@BuildRequires: libyaml libyaml-devel
-@ENABLE_BALER_TRUE@%description baler
-@ENABLE_BALER_TRUE@This provides log file analysis tools collectively known as baler.
-@ENABLE_BALER_TRUE@%files baler
-@ENABLE_BALER_TRUE@%defattr(-,root,root)
-@ENABLE_BALER_TRUE@%{_prefix}/lib/python2.7/site-packages/baler
-@ENABLE_BALER_TRUE@%{_prefix}/lib/python2.7/site-packages/abhttp
-@ENABLE_BALER_TRUE@%{_bindir}/bhquery
-@ENABLE_BALER_TRUE@%{_sbindir}/balerd
-@ENABLE_BALER_TRUE@%{_sbindir}/bhttpd
-@ENABLE_BALER_TRUE@%{_bindir}/baler-pedigree
-@ENABLE_BALER_TRUE@%{_bindir}/bassoc*
-@ENABLE_BALER_TRUE@%{_bindir}/bclient
-@ENABLE_BALER_TRUE@%{_bindir}/bcsv2bnumvec
-@ENABLE_BALER_TRUE@%{_bindir}/b*test
-@ENABLE_BALER_TRUE@%{_bindir}/bmap_dump
-@ENABLE_BALER_TRUE@%{_bindir}/bmeta_cluster
-@ENABLE_BALER_TRUE@%{_bindir}/bnumvec
-@ENABLE_BALER_TRUE@%{_bindir}/bquery
-@ENABLE_BALER_TRUE@%{_bindir}/bsos_part_modify
-@ENABLE_BALER_TRUE@%{_bindir}/btkn_dump
-@ENABLE_BALER_TRUE@%{_libdir}/libbaler.*
-@ENABLE_BALER_TRUE@%{_libdir}/libbassocimg.*
-@ENABLE_BALER_TRUE@%{_libdir}/libbin_metric.*
-@ENABLE_BALER_TRUE@%{_libdir}/libbin_rsyslog_tcp.*
-@ENABLE_BALER_TRUE@%{_libdir}/libbin_test.*
-@ENABLE_BALER_TRUE@%{_libdir}/libbout_me.*
-@ENABLE_BALER_TRUE@%{_libdir}/libbout_sos.*
-@ENABLE_BALER_TRUE@%{_libdir}/libbout_sos_img.*
-@ENABLE_BALER_TRUE@%{_libdir}/libbout_sos_msg.*
-@ENABLE_BALER_TRUE@%{_libdir}/libbquery.*
-@ENABLE_BALER_TRUE@%{_libdir}/libbsos_img.*
-@ENABLE_BALER_TRUE@%{_libdir}/libbsos_msg.*
-
-@ENABLE_BALER_TRUE@# end baler
 
 # devel
 %package devel
@@ -270,7 +195,7 @@ Obsoletes: ldms-all-test
 %description test
 This is a collection of test scripts for (LDMS).
 They also serve as examples, but are not usually of direct 
-interest on compute nodes in production clusters.
+interest on compute nodes in large clusters.
 
 %files test
 %defattr(-,root,root)
@@ -294,7 +219,6 @@ control file, use of libgenders can be bypassed.
 
 %files initscripts-base
 %defattr(-,root,root)
-@ENABLE_BALER_TRUE@%config(noreplace) %{_sysconfdir}/baler/*
 @ENABLE_TOSS_SYSTEMD_TRUE@%{_sysconfdir}/sysconfig/*
 @ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/sysconfig/ldms.d/ldmsd.local.conf
 @ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/sysconfig/ldms.d/ldmsd.agg.conf
@@ -302,7 +226,6 @@ control file, use of libgenders can be bypassed.
 @ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/sysconfig/ldms.d/ClusterGenders/genders.local
 @ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/sysconfig/ldms.d/ClusterGenders/genders.agg
 @ENABLE_TOSS_SYSTEMD_TRUE@%{_bindir}/ldmsd-wrapper.sh
-
 @ENABLE_TOSS_SYSTEMD_TRUE@%post initscripts-base
 #  bash $RELO_DIR/relocate-paths.sh $USR $ETC $VAR $RELO_DIR/manifest
 bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
@@ -372,7 +295,6 @@ Doxygen files for ovis package.
 %exclude %{_datadir}/doc/ovis-ldms-%{version}/examples
 ## %{_datadir}/doc/ovis-lib-%{version}
 @ENABLE_SOS_TRUE@# %{_datadir}/doc/sos
-@ENABLE_BALER_TRUE@# %{_datadir}/doc/baler
 ## %%docdir %{_defaultdocdir}
 %docdir /usr/share/doc
 %post doc
@@ -383,7 +305,7 @@ bash %{_prefix}/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
 	%{_prefix}/share/doc/ovis-@VERSION@/relocation/manifest
 
 %package python2
-Summary: Python files for LDMS, SOS, and baler
+Summary: Python files for LDMS, SOS
 %description python2
 Python files for ovis
 # install needs
@@ -396,8 +318,6 @@ Requires: ovis >= 3.0.0 python
 @ENABLE_SWIG_TRUE@%{_prefix}/lib/python2.7/site-packages/ovis_lib
 @ENABLE_SWIG_TRUE@%{_prefix}/lib/python2.7/site-packages/ovis_ldms
 @ENABLE_LDMS_PYTHON_TRUE@%{_prefix}/lib/python2.7/site-packages/ldmsd
-@ENABLE_BALER_TRUE@%exclude %{_prefix}/lib/python2.7/site-packages/baler
-@ENABLE_BALER_TRUE@%exclude %{_prefix}/lib/python2.7/site-packages/abhttp
 #%%{python2_sitelib}/*
 #end python2
 # see https://fedoraproject.org/wiki/Packaging:Python_Old
@@ -461,13 +381,10 @@ bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh 
 	$RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/manifest
 
 %changelog
-* Thu Apr 19 2018 Ben Allan <baallan@sandia.gov> 3.4.6-1
-SOS/baler v3 deprecation. Wrapper file for sbin exec relocation support.
+* Fri Apr 13 2018 Ben Allan <baallan@sandia.gov> 4.0.0-rc
+Baler decoupled upstream. omnipath support added.
 * Wed Oct 18 2017 Ben Allan <baallan@sandia.gov> 3.4.4-4
 Cray relocation scheme
-* Thu Aug 31 2017 Ben Allan <baallan@sandia.gov> 3.4.4-2.1
-Update for upstream and override -O2 which produces infinite loop bugs
-with toss gcc 4.8.5.
 * Wed Apr 26 2017 Ben Allan <baallan@sandia.gov> 3.4.1-1
 Flex array and swig bug patches. Refactor cython dependent bits.
 * Wed Mar 29 2017 Ben Allan <baallan@sandia.gov> 3.4.0-1

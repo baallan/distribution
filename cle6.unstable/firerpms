@@ -2,15 +2,15 @@
 #
 #
 packing=cle6.unstable
-ovis_branch=master
+ovis_branch=2017.12.13.mutrino-bkp
 sos_branch=master
 NetworkRequires=gitlab.opengridcomputing.com
 #SOSREPO=gitlab@gitlab.opengridcomputing.com:tom/SOS.git
-OVISREPO=gitlab@gitlab.opengridcomputing.com:ovis/ovis.git
+OVISREPO=/home/baallan/mutrino/2017.12.13.ovis
 
 . ../support/package-functions
 
-prefix=/usr
+prefix=/opt/ovis
 PACK_OPTS="
 --disable-rpath
 --disable-static
@@ -47,7 +47,7 @@ BALER_OPTS="
 --disable-baler
 "
 STORE_OPTS="
---enable-sos
+--disable-sos
 --disable-flatfile
 --enable-csv
 --enable-store
@@ -56,7 +56,7 @@ STORE_OPTS="
 SAMPLER_OPTS="
 --disable-jobid
 --enable-tsampler
---enable-cray_power_sampler
+--disable-cray_power_sampler
 --disable-perfevent
 --disable-papi
 --disable-perf
@@ -74,12 +74,12 @@ SAMPLER_OPTS="
 --disable-hadoop
 --disable-generic_sampler
 --disable-switchx
---enable-cray_system_sampler
---enable-aries-gpcdr
---enable-gpcdlocal
---enable-aries-mmr
---enable-ugni
---enable-lustre
+--disable-cray_system_sampler
+--disable-aries-gpcdr
+--disable-gpcdlocal
+--disable-aries-mmr
+--disable-ugni
+--disable-lustre
 "
 allconfig="$PACK_OPTS $SECURITY_OPTS $NETWORK_OPTS $IFACE_OPTS $BALER_OPTS $STORE_OPTS $SAMPLER_OPTS $CRAY_LOCATIONS"
 
@@ -98,16 +98,6 @@ else
 fi
 
 specdir=$dn
-GPTAR=gpcd-support.tar
-SOSTAR=sos.tar
-if ! test -f $SOSTAR; then
-        echo archive $SOSTAR must be in spec dir
-        exit 1
-fi
-if ! test -f $GPTAR; then
-        echo archive $GPTAR must be in spec dir
-        exit 1
-fi
 /bin/rm -rf ovis
 if ! git clone $OVISREPO ovis; then
 	echo cannot checkout ovis.
@@ -135,17 +125,13 @@ mkdir -p $OUTPUT_DIR
 # populate outdir inputs
 git archive --prefix=${PACKAGE=}-${VERSION}/ $COMMIT_ID --format=tar --output=${OUTPUT_DIR}/$TARGET
 sleep 0.1
-cp ../$GPTAR $OUTPUT_DIR
-cp ../$SOSTAR $OUTPUT_DIR
 
 cd $OUTPUT_DIR
 
 # Untar archive
 echo "Untarring archive"
 tar xf $TARGET && \
-(cd ${PACKAGE}-${VERSION} && \
-tar xf ../$SOSTAR && \
-tar xf ../$GPTAR
+(cd ${PACKAGE}-${VERSION}
 mkdir -p gpcd-support/m4 && \
 ./autogen.sh)
 if ! test -f ${PACKAGE}-${VERSION}/configure; then
@@ -164,6 +150,7 @@ rm -rf old
 mkdir old
 mv -f ${PACKAGE}-${VERSION} $TARGET $SOSTARGET old
 specfile=tmp-ovis-${packing}.spec
+set -x
 tar zxf $TARGET.gz && \
 cd ${PACKAGE}-${VERSION} && \
 echo "================ configure for $packing rpms =============" && \
@@ -183,7 +170,7 @@ if test -f sos/config.status; then
 	./sos/config.status --file=$specdir/ovis-${packing}.spec:$specdir/$specfile
 	specfile=ovis-${packing}.spec
 fi && \
-rpmbuild -v --define "_topdir `pwd`/$packing" -ba $specdir/$specfile && \
+rpmbuild -vv --define "_topdir `pwd`/$packing" -ba $specdir/$specfile && \
 touch completed
 if ! test -f completed; then
 	echo FAIL

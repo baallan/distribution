@@ -2,7 +2,7 @@
 #
 #
 packing=toss2
-ovis_branch=OVIS-3.4.3
+ovis_branch=v3.4.6
 sos_branch=master
 NetworkRequires=github.com
 #SOSREPO=gitlab@gitlab.opengridcomputing.com:tom/SOS.git
@@ -49,7 +49,7 @@ BALER_OPTS="
 --disable-baler
 "
 STORE_OPTS="
---enable-sos
+--disable-sos
 --enable-flatfile
 --enable-csv
 --enable-store
@@ -69,10 +69,12 @@ SAMPLER_OPTS="
 --disable-hadoop
 --disable-generic_sampler
 --disable-switchx
+--disable-sensors
+--enable-dstat
+--enable-llnl-edac
 --enable-sysclassib
 --enable-perf
 --enable-jobid
---enable-sensors
 --enable-array_example
 --enable-procinterrupts
 --enable-procnetdev
@@ -134,14 +136,11 @@ else
 	git submodule init sos && git submodule update sos && tar cf ../$SOSTAR sos
 fi
 
-patches="
-flex_array.3.4.1
-"
+patches=""
 for i in $patches; do
 	patch -p1 < ../patches/$i
 	git commit -a -m "add $packing distribution patches"
 done
-
 if ! test -f ../$SOSTAR; then
 	echo failed to download sos
 	exit 1

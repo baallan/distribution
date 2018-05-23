@@ -1,19 +1,20 @@
-#!/bin/bash
+#!/bin/bash -x
 #
 #
-packing=toss3
-ovis_branch=v3.4.6
+packing=v41.toss3.unstable
+ovis_branch=ldmsd_usage_systemd_master
 sos_branch=master
 NetworkRequires=github.com
 #SOSREPO=gitlab@gitlab.opengridcomputing.com:tom/SOS.git
-OVISREPO=https://github.com/ovis-hpc/ovis.git
+OVISREPO=gitlab@gitlab.opengridcomputing.com:baallan/ovis.git
+#OVISREPO=/home/baallan/ovis/repos/buildfiles_3_18
 
 if test -n "$MODULEPATH"; then
 	module purge
 fi
 . ../support/package-functions
 
-prefix=/usr
+prefix=/genetha
 PACK_OPTS="
 --disable-rpath
 --disable-static
@@ -45,17 +46,15 @@ IFACE_OPTS="
 --enable-libgenders
 --enable-genderssystemd
 "
-BALER_OPTS="
---disable-baler
-"
 STORE_OPTS="
---disable-sos
+--enable-sos
 --enable-flatfile
 --enable-csv
 --enable-store
---disable-rabbitv3
+--enable-rabbitv3
 "
 SAMPLER_OPTS="
+--enable-kokkos
 --disable-cray_power_sampler
 --disable-cray_system_sampler
 --disable-aries-gpcdr
@@ -69,13 +68,12 @@ SAMPLER_OPTS="
 --disable-hadoop
 --disable-generic_sampler
 --disable-switchx
---disable-sensors
---enable-dstat
---enable-llnl-edac
 --enable-sysclassib
 --enable-opa2
+--enable-jobinfo
 --enable-perf
 --enable-jobid
+--enable-sensors
 --enable-array_example
 --enable-procinterrupts
 --enable-procnetdev
@@ -86,7 +84,7 @@ SAMPLER_OPTS="
 --enable-meminfo
 --enable-lustre
 "
-allconfig="$PACK_OPTS $SECURITY_OPTS $NETWORK_OPTS $IFACE_OPTS $BALER_OPTS $STORE_OPTS $SAMPLER_OPTS $CRAY_LOCATIONS"
+allconfig="$PACK_OPTS $SECURITY_OPTS $NETWORK_OPTS $IFACE_OPTS $STORE_OPTS $SAMPLER_OPTS $CRAY_LOCATIONS"
 
 if ! pack_prechecks "$allconfig"; then
 	echo "Check dependencies listed above, install needed packages, and try again"
@@ -144,8 +142,8 @@ for i in $patches; do
 	git commit -a -m "add $packing distribution patches"
 done
 if ! test -f ../$SOSTAR; then
-	echo failed to download sos
-	exit 1
+        echo archive $SOSTAR must be next to source tree.
+        exit 1
 fi
 VERSION=$(pack_get_ac_version configure.ac)
 PACKAGE=$(pack_get_ac_name configure.ac)
@@ -201,15 +199,11 @@ cp $TARGET.gz $packing/SOURCES && \
 ./config.status --file=-:$specdir/ovis.spec.in | \
 ./ldms/config.status --file=-:- | \
 ./lib/config.status --file=$specdir/tmp-ovis-${packing}.spec:- && \
-if test -f baler/config.status; then
-	./baler/config.status --file=$specdir/baler-ovis-${packing}.spec:$specdir/tmp-ovis-${packing}.spec
-	specfile=baler-ovis-${packing}.spec
-fi && \
 if test -f sos/config.status; then
 	./sos/config.status --file=$specdir/ovis-${packing}.spec:$specdir/$specfile
 	specfile=ovis-${packing}.spec
 fi && \
-rpmbuild -v --define "_topdir `pwd`/$packing" -ba $specdir/$specfile && \
+rpmbuild -vv --define "_topdir `pwd`/$packing" -ba $specdir/$specfile && \
 touch completed
 if ! test -f completed; then
 	echo FAIL
