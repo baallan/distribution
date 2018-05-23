@@ -2,7 +2,7 @@
 #
 #
 packing=toss3.unstable
-ovis_branch=wrapper_location_nicer_34 
+ovis_branch=OVIS-3.4.6-dstat-fix
 sos_branch=master
 NetworkRequires=github.com
 #SOSREPO=gitlab@gitlab.opengridcomputing.com:tom/SOS.git
@@ -69,11 +69,13 @@ SAMPLER_OPTS="
 --disable-hadoop
 --disable-generic_sampler
 --disable-switchx
+--disable-sensors
+--enable-dstat
+--enable-llnl-edac
 --enable-sysclassib
 --enable-opa2
 --enable-perf
 --enable-jobid
---enable-sensors
 --enable-array_example
 --enable-procinterrupts
 --enable-procnetdev
