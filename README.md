@@ -34,3 +34,7 @@ For any platform, there may also be a $platform.unstable/ directory containing d
 These will be under numerous names. There will often be a **firerpms** script which combines the most recent development sources. In many cases the repositories used will require special access privileges.
 When working with test packages, pay particular attention to the variables at the top of the fire script which control repository and branch.
 
+## Configuring an HPC cluster with LDMS
+
+Scalable configuration management of clusters is most easily done using the libgenders
+options to control the ldmsd systemd service. An example of this is given in [gendersTutorial.md](gendersTutorial.md).
