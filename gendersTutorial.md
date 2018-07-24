@@ -1,8 +1,8 @@
 # Controlling LDMSD with libgenders
 
-[This is a work in progress page. check back after 7/23/18]
- 
 Genders support is useful whether configuring LDMSD for a workstation or an entire cluster.
+It provides scalability and in some cases allows reuse of node set definitions. A single declarative text file defines the ldmsd roles and details for an entire cluster.
+
 Table of Contents
 1. [Compiling genders support in ldmsd](#compiling-genders-support-in-ldmsd)
 1. [Using genders files with ldmsd](#using-genders-files-with-ldmsd)
@@ -75,7 +75,7 @@ The genders file format is a simple text database associating attributes (with o
 This example genders file configures data collection for a single node named twain.
 This is annotated with comments (# explaining the next line in each case).
 
-::: /etc/sysconfig/ldms.d/ClusterGenders/genders.local :::
+**::: /etc/sysconfig/ldms.d/ClusterGenders/genders.local :::**
 
 
     # mark twain as a host ldmsd should run on.
@@ -141,7 +141,7 @@ We can create an aggregator instance simply by setting up the needed configurati
     
 For this, the new genders file needed is genders.agg
 
-::: /etc/sysconfig/ldms.d/ClusterGenders/genders.agg :::
+**::: /etc/sysconfig/ldms.d/ClusterGenders/genders.agg :::**
 
     # ldmsaggd=<list> defines the set of nodes this aggregator should collect from
     twain ldmsaggd=localhost
@@ -159,10 +159,10 @@ For this, the new genders file needed is genders.agg
     # here the files roll over at midnight and have a separate header.
     twain ldmsd_store_csv=path//var/log/twain-ldms/csv:altheader/1:rolltype/2:rollover/0    
     twain ldmsd_store_flatfile=path//var/log/twain-ldms/flat:altheader/01:rolltype/2:rollover/0    
-    # enable debug logging
+    # enable debug logging.
     twain ldmsd_dbg=DEBUG
-    # override where the log goes. note the leading // is required in the filename
-    # by default, the logs will go to the journal then /var/log/messages on most systems
+    # override where the log goes. note the leading // is required in the filename.
+    # by default, the logs will go to the journal then /var/log/messages on most systems.
     twain ldmsd_log=//var/log/ldmstest/agg.log
 
 ## Advanced debugging of ldmsd 
@@ -182,7 +182,150 @@ HPC systems typically have equipment requiring special configuration to collect 
 
 ## Serrano example
 
-    # UUR text here
+The file /etc/genders contains numerous definitions controlling the services each node offers.
+Only the ldms related lines are given here. The bootnode property is used by more than ldmsd.
+
+**::: /etc/genders (the ldms parts) :::**
+
+    ## bootnode specification ##
+    ser[1-187],sergw[1-3],serln1    bootnode=seradmin1
+    ser[188-374],sergw[4-6],serln2    bootnode=seradmin2
+    ser[375-561],sergw[7-9],serln3    bootnode=seradmin3
+    ser[562-748],sergw[10-12],serln4    bootnode=seradmin4
+    ser[749-935],sergw[13-15],serln5    bootnode=seradmin5
+    ser[936-1122],sergw[16-18],serln6    bootnode=seradmin6
+    ## Run data collectors (ldmsd) on all nodes
+    ser[1-1122],sergw[1-18],serrano-login[1-6],seradmin[1-6] ldmsd
+    ## Run LDMS aggregators (ldmsaggd) on all admin nodes
+    seradmin[1-6] ldmsaggd=BOOTNODELIST:%n:CLIENTOFLIST
+
+
+The next file contains the ldmsd-related genders definitions. For administrative convenience they are not included in the default /etc/genders file on serrano. 
+
+**::: /etc/sysconfig/ldms.d/ClusterGenders/genders.serrano :::**
+
+    # LDMS related attributes for libgenders support
+    # 'man ldms-genders' is the authoritative source for LDMS genders attrs info
+    
+    # Run data collectors (ldmsd) on all nodes
+    # commenting out the next line will make ldmsd exit on start
+    # except on aggregator (admin) nodes.
+    # This is defined in /etc/genders so leave it commented out here.
+    # The nodeup script needs the 'ldmsd' and 'ldmsaggd' attributes to be in /etc/genders 
+    # but does not need to see any other ldmsd attributes.
+    # Compute nodes are ser#, lustre gateways are sergw#, and the
+    # other node names are self explanatory.
+    #ser[1-1122],sergw[1-18],serrano-login[1-6],seradmin[1-6] ldmsd
+    
+    # 60 second sampling
+    ser[1-1122],sergw[1-18],seradmin[1-6] ldmsd_interval_default=60000000,ldmsd_offset_default=0
+    
+    # Data collectors listen on rdma transport unless testing ethernet sockets.
+    ser[1-1122],sergw[1-18],seradmin[1-6],serrano-login[1-6],serln[1-6] ldmsd_port=411
+    ser[1-1122],sergw[1-18],serrano-login[1-6],serln[1-6] ldmsd_xprt=rdma
+    #ser[1-1122],sergw[1-18],serrano-login[1-6],serln[1-6] ldmsd_xprt=sock
+    # The admin nodes are ldmsd aggregators and listen on TCP sockets
+    # to service remote level 2 aggregators.
+    seradmin[1-6] ldmsd_xprt=sock
+    
+    # Define the hostname needed for the data collectors transport.
+    ser[1-1122],sergw[1-18],seradmin[1-6] ldmsd_host=%n-ib0
+    # Login nodes need specific lines because of the external hostname renaming we
+    # do at startup.
+    serrano-login[1-6],serln[1-6] ldmsd_host=%n-ib0
+    # if we switch to tcp socket, the hostname
+    #ser[1-1122],sergw[1-18],seradmin[1-6] ldmsd_host=%n
+    #serrano-login[1-6],serln[1-6] ldmsd_host=%n
+    
+    # Define data collection plugins that ldmsd will use.
+    # Some collectors are not used on some nodes.
+    ser[1-1122],serrano-login[1-6] ldmsd_metric_plugins=jobid:meminfo:vmstat:procnfs:lustre2_client:procstat:procnetdev:opa2
+    seradmin[1-6] ldmsd_metric_plugins=meminfo:vmstat:procstat:procnetdev:opa2
+    sergw[1-18] ldmsd_metric_plugins=meminfo:vmstat:procstat:procnetdev:opa2:sysclassib
+    
+    # configuration of jobid plugin names file created by the slurm prolog.
+    ser[1-1122]  ldmsd_jobid=file//var/run/ldms.jobinfo
+    
+    # meminfo plugin settings
+    # this may need tailored schema names on other systems
+    ser[1-1122],sergw[1-18],serrano-login[1-6],seradmin[1-6] ldmsd_meminfo=with_jobid/1
+    
+    # vmstat plugin settings
+    ser[1-1122],sergw[1-18],serrano-login[1-6],seradmin[1-6] ldmsd_vmstat=with_jobid/1
+    
+    # procnfs plugin settings
+    ser[1-1122],sergw[1-18],serrano-login[1-6],seradmin[1-6] ldmsd_procnfs=with_jobid/1
+    
+    # 
+    # lustre2_client plugin settings
+    # we have to list the filesystem mounts...
+    ser[1-1122],serrano-login[1-6] ldmsd_lustre2_client=llite/fscratch&gscratch:with_jobid/1
+    
+    # procstatutil2 plugin settings
+    # we have to list the maximum cpu count (or hyperthread count) seen on any node type.
+    # Nodes without hyperthreading will end up with columns of zeroed data unless
+    # an alternate schema name is specified.
+    ser[1-1122],sergw[1-18],serrano-login[1-6],seradmin[1-6] ldmsd_procstat=maxcpu/32:with_jobid/1
+    
+    # procnetdev plugin settings
+    # we have to list the expected ethernet device names.
+    ser[1-1122]        ldmsd_procnetdev=with_jobid/1:ifaces/eth0&eth2&ib0&ib1
+    serrano-login[1-6] ldmsd_procnetdev=with_jobid/1:ifaces/eth0&eth2&ib0&ib1
+    seradmin[1-6]      ldmsd_procnetdev=with_jobid/1:ifaces/eth0&eth2&ib0&ib1
+    sergw[1-18]        ldmsd_procnetdev=with_jobid/1:ifaces/eth0&eth2&ib0&ib1
+    
+    # opa2 and sysclassib plugin settings.
+    # we have to list the expected fast device names.
+    ser[1-1122],serrano-login[1-6],seradmin[1-6] ldmsd_opa2=with_jobid/1:ports/hfil_0.1
+    sergw[1-18] ldmsd_sysclassib=with_jobid/1:ports/mlx5_0.1:schema/gw_sysclassib
+    
+    # LDMS component id groups. These ranges are not randomly chosen. They have to
+    # be layed out in a manner such that all nodes on all clusters in a given
+    # network domain, i.e. SRN, have unique non-overlapping ids. It is a bit
+    # like IP subnet design. This benefits downstream data analytics and does not
+    # directly affect data collection.
+    ser[1-1122]    ldmsd_idbase=300000
+    seradmin[1-6]   ldmsd_idbase=310000
+    serrano-login[1-6] ldmsd_idbase=320000
+    sergw[1-18]   ldmsd_idbase=330000
+    # A better non-legacy practice is to
+    # define component_ids as an integer (8 bytes) with subsections as follows:
+    #  high bytes 1,2 network number 
+    #  byte 3 cluster number,
+    #  byte 4 component type,
+    #  low bytes 5-8 site device number.
+    # Where
+    #   network numbers assigned by community registry (maybe recycle ipv4 class B)
+    #   cluster number assigned by owner.
+    #   type (0: compute, 1 admin, 2 login, 3 gateway, 4 top of cluster, 5-255 tbd)
+    #   device number assigned by owner
+    
+    # Define the 'level 1' LDMS aggregators.
+    # %n in ldmsagdd means aggregate yourself (avoidable if using an L2 aggregator).
+    # L1 aggregators use sockets transport rather than rdma to provide data to L2 clients.
+    #
+    # The 'level 1' aggregators within the cluster will report their aggregated
+    # data to the milly server (L2) using a pull model. milly is connected to the cluster
+    # over the Capviz internal HPC storage VLAN.
+    # The next line is uncommented in /etc/genders for nodeup use.
+    # seradmin[1-6] ldmsaggd=BOOTNODELIST:%n:CLIENTOFLIST 
+    
+    # next line says we expect milly as an L2 aggregator. No effect within serrano.
+    seradmin[1-6] ldmsaggd_clientof=milly
+    # Data collection once per minute at 1.3 seconds after the minute mark.
+    # This assumes node level collection takes no more than 1.2 seconds.
+    # If a node is missing, retry connecting every 30 seconds.
+    seradmin[1-6] ldmsaggd_interval_default=60000000,ldmsaggd_offset_default=130000,ldmsaggd_event_thds=8,ldmsaggd_conn_retry=30000000
+    # 2G reserved for set transportation memory; vast overestimate of actual need.
+    seradmin[1-6] ldmsaggd_mem_res=2G
+    #seradmin[1-6] ldmsd_dbg=DEBUG
+    seradmin[1-6] ldmsd_dbg=ERROR
+    # use flatfile store for easy access to individual metrics 
+    seradmin[1-6] ldmsd_store_plugins=store_flatfile
+    # flatfile data grows on terabyte local flash.
+    seradmin[1-6] ldmsd_store_flatfile=path//localdisk/ldms/
+    # for the moment, only storing meminfo and procstat (cpu data) to flash
+    seradmin[1-6] ldmsd_exclude_schemas_store_flatfile=slurmjobid:vmstat:procnfs:procnetdev:sysclassib:lustre2_client
 
 ## Special considerations
 
@@ -210,9 +353,10 @@ The contents of meminfo /proc/meminfo depend on the compiled kernel and/or the m
 
 ## Splunk followers
 
-Both store_csv and store_flatfile output can be read by a splunk input tool. In both cases, a shell script may also be used to filter the data into a format that makes the data smaller or more useful as needed.
+Both store_csv and store_flatfile output can be read by a splunk input tool. In both cases, a shell script may also be used to filter the data into a format that makes the data smaller or more useful as needed. Serrano uses flatfile only for splunk.
 
-    [fixme: serrano example from mark]
+    # everything after the tail -F is an approximation that will be fixed soon
+    tail -F .../meminfo/Active | ...
 
 ## Flat file roll over
 
@@ -220,17 +364,167 @@ Presently the flat file store does not support rollover directly by ldmsd. They 
 
 ## Milly example
 
-Milly is a second-level (L2) ldmsd aggregation and storage host for serrano. It has a different set of administrators than serrano, and they have only read access to the genders.serrano file. The ldmsd instance ldmsd@serrano.service is used to manage the archiving of serrano data.
+Milly is a second-level (L2) ldmsd aggregation and storage host for serrano. It has a different set of administrators than serrano, and they have only read access to the genders.serrano file and the serrano /etc/genders file. The ldmsd instance ldmsd@serrano.service is used to manage the archiving of serrano data.
 
-The configuration of the storage for serrano on milly is kept in a separate file milly.genders.serrano, and both files are listed in the ldmsd.serrano.conf on milly. The systemd launch script assembles these into a single file. 
+The configuration of the LDMSD storage for serrano on milly is kept in a separate file milly.genders.serrano, and three files are listed in the ldmsd.serrano.conf on milly. The systemd launch script assembles these into a single file. 
 
-    LDMS_GENDERS="/projects/ovis/ClusterGenders/genders.serrano /etc/sysconfig/ldms.d/ClusterGenders/milly.genders.serrano"
+    LDMS_GENDERS="/serrano/etc/genders /ovis/ClusterGenders/genders.serrano /ovis/ClusterGenders/milly.genders.serrano"
 
-The content of genders.serrano may vary, and the milly team receives notice when this occurs so they can restart the L2 daemon. 
+The content of genders and genders.serrano may vary with administrative activity, and the milly team receives notice when this occurs so they can restart the L2 daemon. 
 
-::: /etc/sysconfig/ldms.d/ClusterGenders/milly.genders.serrano :::
+The setup in milly.genders.serrano does not vary for other clusters in LDMS version 3 and later because ${VARIABLES} are substituted by either LDMS or the systemd script as required. The milly.genders.serrano is actually a symbolic link
+to milly.genders.capviz file which works for any of the clusters due to common administrative choices. If only a single cluster is monitored from the L2 host, then variables need not be used.
 
-    fixme insert file here
+**::: /etc/sysconfig/ldms.d/ClusterGenders/milly.genders.serrano :::**
+
+    # These are the genders specific to milly gathering from
+    # the top level aggregator(s) within ${LDMSCLUSTER}
+    #
+    # Milly is aggregatinging ${LDMSCLUSTER} 1st level aggregators
+    # master list of port values is in /projects_srn/ovis/ClusterGenders/README.txt
+    milly ldmsaggd=AGGCLIENTOFLIST
+    # chadmin[1-12] ldmsaggd_clientof=milly ## taken care of in genders.${LDMSCLUSTER}
+    milly ldmsd_port=${CAPVIZ_AGG_PORT}
+
+    # memory size
+    milly ldmsaggd_mem_res=200M
+    # threads
+    milly ldmsaggd_event_thds=8
+
+    # milly aggregation schedule:
+    # offset should be bigger than admin L1 agg offset. offsets must be coordinated
+    # across all clusters to avoid NIC traffic jam if nic is slow.
+    milly ldmsaggd_interval_default=${CAPVIZ_AGG_INTERVAL},ldmsaggd_offset_default=${CAPVIZ_AGG_OFFSET}
+
+    # stores
+    milly ldmsd_store_plugins=store_csv
+    # csv controls
+    # midnight rollover; any file older than 25 hours can be moved
+    # without bothering ldmsd.
+    milly ldmsd_store_csv=altheader/1:rolltype/2:rollover/0:path//mprojects/ovis/ClusterData/${LDMSCLUSTER}:create_gid/1001010666:create_perm/640
+    # schemas to ignore
+    # milly ldmsd_exclude_schemas_store_csv=
+    # schemas to store
+    #milly ldmsd_schemas_store_csv=jobid:meminfo:vmstat:procnfs:lustre2_client:procstat:procnetdev:sysclassib:gw_sysclassib
+    milly ldmsd_schemas_store_csv=gw_procnetdev:gw_sysclassib:jobid:Lustre_Client:meminfo:opa2:procnetdev:procnfs:procstat:sysclassib:vmstat
+
+    # logging controls
+    #milly ldmsd_dbg=DEBUG
+    milly ldmsd_dbg=WARNING
+    milly ldmsd_log=/var/log/ldms-clusters
+
+A common location to define values needed by all the aggregators on host milly is the ldmsd.all_instances.conf file.  This piece of bash script prevents conflicts in the timing and port number configuration if it is properly maintained. On L2 hosts serving at most one cluster, this file is unneeded.
+
+**::: /etc/sysconfig/ldms.d/ldmsd.all_instances.conf :::**
+
+    #
+    # This contains logic common to all aggregators that tweaks by target.
+    # Ports on milly need to be consistently defined.
+    #
+
+    # In order of who goes first_
+    clusterlist="skybridge chama serrano solo uno ghost doom eclipse hazel cts1x"
+
+    # The encapsulating script can define ALL_PICKY=1 to turn
+    # unknown cluster name warnings into exit errors.
+
+    # archiving cluster ldmsds start at 413
+    case $LDMSCLUSTER in 
+    milly)
+    	export MILLY_PORT=411
+    	;;
+    agg)
+    	export MILLY_AGG_PORT=412
+    	;;
+    solo)
+    	export CAPVIZ_AGG_PORT=413
+    	;;
+    chama)
+    	export CAPVIZ_AGG_PORT=414
+    	;;
+    skybridge)
+    	export CAPVIZ_AGG_PORT=415
+    	;;
+    serrano)
+    	export CAPVIZ_AGG_PORT=416
+    	;;
+    uno)
+    	export CAPVIZ_AGG_PORT=417
+    	;;
+    ghost)
+    	export CAPVIZ_AGG_PORT=418
+    	;;
+    cts1x)
+    	export CAPVIZ_AGG_PORT=419
+    	;;
+    doom)
+    	export CAPVIZ_AGG_PORT=420
+    	;;
+    eclipse)
+    	export CAPVIZ_AGG_PORT=421
+    	;;
+    hazel)
+    	export CAPVIZ_AGG_PORT=422
+    	;;
+    *)
+    	if test -n "$ALL_PICKY"; then
+    		echo "PORT: unset for $LDMSCLUSTER in ldmsd.all_instances.conf"
+    		exit 1
+    	fi
+    esac
+
+
+    # Timing on a shared network link needs to be consistent and noncontending.
+    # The current schedule is 2 second gap between clusters
+    base_interval=60000000
+    # max offset is 29999999
+    case $LDMSCLUSTER in
+    solo)
+    	export CAPVIZ_AGG_INTERVAL=$base_interval
+    	export CAPVIZ_AGG_OFFSET=8200000
+    	;;
+    chama)
+    	export CAPVIZ_AGG_INTERVAL=$base_interval
+    	export CAPVIZ_AGG_OFFSET=4200000
+    	;;
+    skybridge)
+    	export CAPVIZ_AGG_INTERVAL=$base_interval
+    	export CAPVIZ_AGG_OFFSET=2200000
+    	;;
+    serrano)
+    	export CAPVIZ_AGG_INTERVAL=$base_interval
+    	export CAPVIZ_AGG_OFFSET=6200000
+    	;;
+    uno)
+    	export CAPVIZ_AGG_INTERVAL=$base_interval
+    	export CAPVIZ_AGG_OFFSET=10200000
+    	;;
+    ghost)
+    	export CAPVIZ_AGG_INTERVAL=$base_interval
+    	export CAPVIZ_AGG_OFFSET=12200000
+    	;;
+    cts1x)
+    	export CAPVIZ_AGG_INTERVAL=$base_interval
+    	export CAPVIZ_AGG_OFFSET=18200000
+    	;;
+    doom)
+    	export CAPVIZ_AGG_INTERVAL=$base_interval
+    	export CAPVIZ_AGG_OFFSET=14200000
+    	;;
+    eclipse)
+    	export CAPVIZ_AGG_INTERVAL=$base_interval
+    	export CAPVIZ_AGG_OFFSET=16200000
+    	;;
+    hazel)
+    	export CAPVIZ_AGG_INTERVAL=$base_interval
+    	export CAPVIZ_AGG_OFFSET=16200000
+    	;;
+    *)
+    	if test -n "$ALL_PICKY"; then
+    		echo "TIMING: unset for $LDMSCLUSTER in ldmsd.all_instances.conf"
+    		exit 1
+    	fi
+    esac
 
 ## Csv archive
 
