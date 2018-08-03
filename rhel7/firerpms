@@ -2,12 +2,15 @@
 #
 #
 packing=rhel7
-ovis_branch=OVIS-3.4.2
+ovis_branch=v3.4.8
 sos_branch=master
 NetworkRequires=github.com
 #SOSREPO=gitlab@gitlab.opengridcomputing.com:tom/SOS.git
 OVISREPO=https://github.com/ovis-hpc/ovis.git
 
+if test -n "$MODULEPATH"; then
+	module purge
+fi
 . ../support/package-functions
 
 prefix=/usr
@@ -38,17 +41,19 @@ IFACE_OPTS="
 --enable-swig
 --disable-readline
 --enable-ldms-python
---disable-libgenders
+--enable-python
+--enable-libgenders
+--enable-genderssystemd
 "
 BALER_OPTS="
---enable-baler
+--disable-baler
 "
 STORE_OPTS="
---enable-sos
+--disable-sos
 --enable-flatfile
 --enable-csv
 --enable-store
---disable-rabbitv3
+--enable-rabbitkw
 "
 SAMPLER_OPTS="
 --disable-cray_power_sampler
@@ -65,9 +70,12 @@ SAMPLER_OPTS="
 --disable-generic_sampler
 --disable-switchx
 --disable-sysclassib
---enable-perf
 --disable-jobid
---enable-sensors
+--disable-lustre
+--disable-sensors
+--enable-dstat
+--enable-llnl-edac
+--enable-perf
 --enable-array_example
 --enable-procinterrupts
 --enable-procnetdev
@@ -76,7 +84,6 @@ SAMPLER_OPTS="
 --enable-procstat
 --enable-vmstat
 --enable-meminfo
---disable-lustre
 "
 allconfig="$PACK_OPTS $SECURITY_OPTS $NETWORK_OPTS $IFACE_OPTS $BALER_OPTS $STORE_OPTS $SAMPLER_OPTS $CRAY_LOCATIONS"
 

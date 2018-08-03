@@ -2,7 +2,7 @@
 #
 #
 packing=toss3
-ovis_branch=v3.4.6
+ovis_branch=v3.4.8
 sos_branch=master
 NetworkRequires=github.com
 #SOSREPO=gitlab@gitlab.opengridcomputing.com:tom/SOS.git
@@ -41,7 +41,7 @@ IFACE_OPTS="
 --enable-swig
 --disable-readline
 --enable-ldms-python
---disable-python
+--enable-python
 --enable-libgenders
 --enable-genderssystemd
 "
@@ -53,7 +53,7 @@ STORE_OPTS="
 --enable-flatfile
 --enable-csv
 --enable-store
---disable-rabbitv3
+--enable-rabbitkw
 "
 SAMPLER_OPTS="
 --disable-cray_power_sampler
