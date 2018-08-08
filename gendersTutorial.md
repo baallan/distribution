@@ -164,6 +164,8 @@ For this, the new genders file needed is genders.agg
     # override where the log goes. note the leading // is required in the filename.
     # by default, the logs will go to the journal then /var/log/messages on most systems.
     twain ldmsd_log=//var/log/ldmstest/agg.log
+    # override default memory reservation
+    twain ldmsaggd_mem_res=1G
 
 ## Advanced debugging of ldmsd 
 
@@ -171,6 +173,15 @@ When started with libgenders supported systemd, a number of files that help admi
 Most notable is the generated configuration script all-config.local (or all-config.agg).
 
 On large production systems, be sure to configure as ldmsd_dbg=CRITICAL or ERROR to avoid flooding log systems.
+
+If insufficient memory errors occur (a "specify -m" suggestion appears in the log), then
+* make the mem_res attribute larger for the node with the error
+* set ldmsd_dbg=DEBUG for the same node.
+* run the configuration.
+* stop ldmsd and examine the logs for the mm_stat DEBUG message appearing at exit.
+* set the mem_res value to the bytes+holes value x fudge_factore. A fudge of 1.2 to 2.0 is typical.
+
+The ldmsaggd_mem_res attribute also applies to data collectors (in spite of its name held over from ldms v2). Typically there it is used to reduce the memory reservation rather than expand it.
 
 ## Scaling ldmsd
 
