@@ -1,5 +1,6 @@
 # Controlling LDMSD with libgenders
 
+This is a tutorial guide for LDMS administrators.
 Genders support is useful whether configuring LDMSD for a workstation or an entire cluster.
 It provides scalability and in some cases allows reuse of node set definitions. A single declarative text file defines the ldmsd roles and details for an entire cluster.
 
@@ -78,35 +79,36 @@ This is annotated with comments (# explaining the next line in each case).
 **::: /etc/sysconfig/ldms.d/ClusterGenders/genders.local :::**
 
 
-    # mark twain as a host ldmsd should run on.
-    # If the attribute ldmsd is not present, the systemd startup script will exit without starting ldmsd
+    # Mark twain as a host ldmsd should run on.
+    # If the attribute ldmsd is not present, the systemd startup script will 
+    # exit without starting ldmsd.
     twain ldmsd
 
-    # define the default sampling schedule (1 second interval with 0 microsecond offset)
-    # these can be overridden on a per sampler basis
+    # Define the default sampling schedule (1 second interval with 0 microsecond offset).
+    # These can be overridden on a per sampler basis
     twain ldmsd_interval_default=1000000,ldmsd_offset_default=0
     
-    # define the hostname that should be used by aggregation daemons collecting from twain.
-    # if twain has more than one network card, particularly a faster card, the name of that
+    # Define the hostname that should be used by aggregation daemons collecting from twain.
+    # If twain has more than one network card, particularly a faster card, the name of that
     # interface should be assigned to ldmsd_host, e.g. ldmsd_host=twain-ib0
     twain ldmsd_host=twain
     # producer is the name of this host as it should appear in data sets.
     twain ldmsd_producer=twain
 
-    # set a component id (8 byte unsigned integer). should be unique across an entire site,
-    # define the port and transport type you want the collector to provide to aggregators.
+    # Set a component id (8 byte unsigned integer). Make it unique across an entire site.
+    # Define the port and transport type you want the collector to provide to aggregators.
     twain ldmsd_port=411,ldmsd_xprt=sock
 
-    # list the sampler plugins you want to use, separated by colons (more can be added later)
+    # List the sampler plugins you want to use, separated by colons (more can be added later)
     twain ldmsd_metric_plugins=meminfo:vmstat
 
-    # override the sampler interval for meminfo (slower) 10 seconds and schema name
+    # Override the sampler interval for meminfo (slower) 10 seconds and schema name.
     twain ldmsd_meminfo=interval/10000000:schema/meminfo_ws
 
-    # enable debug logging
+    # Enable debug logging
     twain ldmsd_dbg=DEBUG
 
-    # override where the log goes. note the leading // is required in the filename
+    # Override where the log goes. note the leading // is required in the filename
     # by default, the logs will go to syslog /var/log/messages on most systems
     twain ldmsd_log=//var/log/ldmstest.log
 
@@ -128,7 +130,8 @@ ldms_auth_ovis(7) man pages.
 
 Substitute the path value of conf= here if you used another location in your .conf file.
 
-     ldms_ls -h localhost -p 411 -x sock -a ovis -A conf=/etc/sysconfig/ldms.d/ClusterSecrets/ldmsauth.conf
+     ldms_ls -h localhost -p 411 -x sock \
+       -a ovis -A conf=/etc/sysconfig/ldms.d/ClusterSecrets/ldmsauth.conf
 
 A bare ldms_ls with no options may work if you have changed none of the defaults in your options.
 If you see no output or an error from ldms_ls, check the log file defined with ldmsd_log.
@@ -326,7 +329,8 @@ The next file contains the ldmsd-related genders definitions. For administrative
     # Data collection once per minute at 1.3 seconds after the minute mark.
     # This assumes node level collection takes no more than 1.2 seconds.
     # If a node is missing, retry connecting every 30 seconds.
-    seradmin[1-6] ldmsaggd_interval_default=60000000,ldmsaggd_offset_default=130000,ldmsaggd_event_thds=8,ldmsaggd_conn_retry=30000000
+    seradmin[1-6] ldmsaggd_interval_default=60000000,ldmsaggd_offset_default=130000
+    seradmin[1-6] ldmsaggd_event_thds=8,ldmsaggd_conn_retry=30000000
     # 2G reserved for set transportation memory; vast overestimate of actual need.
     seradmin[1-6] ldmsaggd_mem_res=2G
     #seradmin[1-6] ldmsd_dbg=DEBUG
@@ -344,7 +348,7 @@ While some sampler plugins collect a standard data set, others must be configure
 
 ## Timing
 
-Data samples are collected synchronously across a cluster by specifying an interval between the samples (in microseconds) and an offset. Store plugins should be configured with the same interval or one which is an even multiple of the sampling interval if logging less data is desired. The target time will be (time since the epoch / interval) + offset. The offsets allowed are in the half-interval range (-(interval/2 - 1) : interval/2 i- 1). By convention, plugins producing job ids are run with a negative offset (such as -100000) and most other samplers receive an offset of 0. To ensure that all metrics have been collected before aggregation, a positive offset (200000 is applied).
+Data samples are collected synchronously across a cluster by specifying an interval between the samples (in microseconds) and an offset. Store plugins should be configured with the same interval or one which is an even multiple of the sampling interval if logging less data is desired. The target time will be (time since the epoch / interval) + offset. The offsets allowed are in the half-interval range (-(interval/2 + 1) : interval/2 - 1). By convention, plugins producing job ids are run with a negative offset (such as -100000) and most other samplers receive an offset of 0. To ensure that all metrics have been collected before aggregation, a positive offset (200000) is applied.
 
 ## Sysclassib
 
@@ -366,12 +370,12 @@ The contents of meminfo /proc/meminfo depend on the compiled kernel and/or the m
 
 Both store_csv and store_flatfile output can be read by a splunk input tool. In both cases, a shell script may also be used to filter the data into a format that makes the data smaller or more useful as needed. Serrano uses flatfile only for splunk.
 
-    # everything after the tail -F is an approximation that will be fixed soon
+    # everything after the tail -F is an approximation; site details will vary.
     tail -F .../meminfo/Active | ...
 
 ## Flat file roll over
 
-Presently the flat file store does not support rollover directly by ldmsd. They can be rolled using logrotate. Prerotate should use "systemctl stop ldmsd@agg.service" and postrotate should restart it. At lower sampling frequencies, data loss may be avoid by carefully scheduling logrotate with cron.
+Presently the flat file store does not support rollover directly by ldmsd. They can be rolled using logrotate. Prerotate should use "systemctl stop ldmsd@agg.service" and postrotate should restart it. At lower sampling frequencies, data loss may be avoided by carefully scheduling logrotate with cron.
 
 ## Milly example
 
@@ -379,7 +383,10 @@ Milly is a second-level (L2) ldmsd aggregation and storage host for serrano. It 
 
 The configuration of the LDMSD storage for serrano on milly is kept in a separate file milly.genders.serrano, and three files are listed in the ldmsd.serrano.conf on milly. The systemd launch script assembles these into a single file. 
 
-    LDMS_GENDERS="/serrano/etc/genders /ovis/ClusterGenders/genders.serrano /ovis/ClusterGenders/milly.genders.serrano"
+    LDMS_GENDERS="
+    /serrano/etc/genders
+    /ovis/ClusterGenders/genders.serrano
+    /ovis/ClusterGenders/milly.genders.serrano"
 
 The content of genders and genders.serrano may vary with administrative activity, and the milly team receives notice when this occurs so they can restart the L2 daemon. 
 
@@ -539,5 +546,5 @@ A common location to define values needed by all the aggregators on host milly i
 
 ## Csv archive
 
-CSV stores are usually rolled over periodically (or by size) and migrated in some way to archive systems for analysis work later. The manual page details options for renaming closed files at rollover time. There are also the create_ options allowing files to be accessed by analysts and administrators without elevated privileges. For example files to be readable by group with number 1000666 while still being written will need an adjustment: ldmsd_store_csv=create_gid/100666:create_perm/0740.
+CSV stores are usually rolled over periodically (or by size) and migrated in some way to archive systems for analysis work later. The manual page details options for renaming closed files at rollover time. There are also the create_ options allowing files to be accessed by analysts and administrators without elevated privileges. For example files to be readable by group with number 1000666 while still being written will need an adjustment: ldmsd_store_csv=create_gid/1000666:create_perm/0740.
 
