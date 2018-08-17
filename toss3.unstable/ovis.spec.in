@@ -41,6 +41,7 @@ Requires: libevent >= 2.0.21
 @ENABLE_LIBGENDERS_TRUE@Requires: genders
 @ENABLE_SYSCLASSIB_TRUE@Requires: libibmad libibumad
 @ENABLE_RDMA_TRUE@Requires: librdmacm libibverbs
+@ENABLE_RABBITKW_TRUE@Requires: librabbitmq librabbitmq-devel
 
 BuildRequires: gettext-devel gcc glib2-devel
 @ENABLE_DOC_TRUE@BuildRequires: doxygen
@@ -53,6 +54,7 @@ BuildRequires: libevent libevent-devel
 @ENABLE_SWIG_TRUE@BuildRequires: swig
 @ENABLE_LIBGENDERS_TRUE@BuildRequires: boost-devel
 @ENABLE_LIBGENDERS_TRUE@BuildRequires: genders
+@ENABLE_RABBITKW_TRUE@BuildRequires: librabbitmq librabbitmq-devel
 Url: http://ovis.ca.sandia.gov/
 
 # relocation prefix0 for file installs other than sysconfdir & localstatedir
@@ -463,6 +465,8 @@ bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh 
 	$RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/manifest
 
 %changelog
+* Wed Jul 25 2018 Ben Allan <baallan@sandia.gov> 3.4.8-1
+Config support of store_rabbitkw.
 * Thu Apr 19 2018 Ben Allan <baallan@sandia.gov> 3.4.6-0
 SOS/baler v3 deprecation. Wrapper file for sbin exec relocation support.
 * Wed Oct 18 2017 Ben Allan <baallan@sandia.gov> 3.4.4-4

@@ -1,12 +1,12 @@
-#!/bin/bash -x
+#!/bin/bash
 #
 #
 packing=toss3.unstable
-ovis_branch=OVIS-3.4.6-dstat-fix
+ovis_branch=v3.4.9
 sos_branch=master
 NetworkRequires=github.com
 #SOSREPO=gitlab@gitlab.opengridcomputing.com:tom/SOS.git
-OVISREPO=gitlab@gitlab.opengridcomputing.com:baallan/ovis.git
+OVISREPO=gitlab@gitlab.opengridcomputing.com:ovis/ovis.git
 
 if test -n "$MODULEPATH"; then
 	module purge
@@ -41,7 +41,7 @@ IFACE_OPTS="
 --enable-swig
 --disable-readline
 --enable-ldms-python
---disable-python
+--enable-python
 --enable-libgenders
 --enable-genderssystemd
 "
@@ -53,7 +53,7 @@ STORE_OPTS="
 --enable-flatfile
 --enable-csv
 --enable-store
---disable-rabbitv3
+--enable-rabbitkw
 "
 SAMPLER_OPTS="
 --disable-cray_power_sampler
