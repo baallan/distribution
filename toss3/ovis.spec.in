@@ -27,7 +27,7 @@
 Summary: OVIS Commands and Libraries
 Name: ovis
 Version: @VERSION@
-Release: 2%{?dist}
+Release: 1%{?dist}
 License: GPLv2 or BSD
 Group: %{ldms_all}
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
@@ -41,7 +41,7 @@ Requires: libevent >= 2.0.21
 @ENABLE_LIBGENDERS_TRUE@Requires: genders
 @ENABLE_SYSCLASSIB_TRUE@Requires: libibmad libibumad
 @ENABLE_RDMA_TRUE@Requires: librdmacm libibverbs
-@ENABLE_RABBITKW_TRUE@Requires: librabbitmq librabbitmq-devel
+@ENABLE_RABBITKW_TRUE@Requires: librabbitmq
 
 BuildRequires: gettext-devel gcc glib2-devel
 @ENABLE_DOC_TRUE@BuildRequires: doxygen
@@ -116,6 +116,10 @@ for b in $RPM_BUILD_ROOT%{_sbindir}/ldms*; do
 	mv $b $RPM_BUILD_ROOT%{_libdir}/ovis-ldms/$bn
 	(cd $dn; ln -s .ldms-wrapper $bn)
 done
+# grunge for no-devel restriction in some environments
+@ENABLE_RABBITKW_TRUE@if test -f $RPM_BUILD_ROOT%{_libdir}/ovis-ldms/libstore_rabbitkw.so -o -f $RPM_BUILD_ROOT%{_libdir}/ovis-ldms/libstore_rabbitv3.so; then
+@ENABLE_RABBITKW_TRUE@	(cd $RPM_BUILD_ROOT%{_libdir}/ovis-ldms/; ln -s /usr/lib64/librabbitmq.so.4 librabbitmq.so; ln -s /usr/lib64/librabbitmq.so.4 .; ln -s /usr/lib64/librabbitmq.so.4.2.0 . )
+@ENABLE_RABBITKW_TRUE@fi
 # remove unpackaged files from the buildroot
 rm -f $RPM_BUILD_ROOT%{_libdir}/*.la
 rm -f $RPM_BUILD_ROOT%{_libdir}/ovis-ldms/lib*.la
@@ -463,6 +467,8 @@ bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh 
 	$RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/manifest
 
 %changelog
+* Wed Sep 26 2018 Ben Allan <baallan@sandia.gov> 3.4.10-1
+Update to 3.4.10 and remove runtime librabbitmq-devel dependence.
 * Wed Jul 25 2018 Ben Allan <baallan@sandia.gov> 3.4.8-1
 Config support of store_rabbitkw.
 * Thu Apr 19 2018 Ben Allan <baallan@sandia.gov> 3.4.6-1

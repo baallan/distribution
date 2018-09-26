@@ -2,7 +2,7 @@
 #
 #
 packing=toss3
-ovis_branch=v3.4.9
+ovis_branch=v3.4.10
 sos_branch=master
 NetworkRequires=github.com
 #SOSREPO=gitlab@gitlab.opengridcomputing.com:tom/SOS.git
