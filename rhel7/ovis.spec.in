@@ -37,11 +37,11 @@ Requires: rpm >= 4.8.0
 Requires: libevent >= 2.0.21
 @ENABLE_LDMS_PYTHON_TRUE@Requires: python
 @ENABLE_SSL_TRUE@Requires: openssl
-@ENABLE_LIBGENDERS_TRUE@Requires: boost-regex boost-program-options
+#@ENABLE_LIBGENDERS_TRUE@Requires: boost-regex boost-program-options
 @ENABLE_LIBGENDERS_TRUE@Requires: genders
-@ENABLE_SYSCLASSIB_TRUE@Requires: libibmad libibumad
-@ENABLE_RDMA_TRUE@Requires: librdmacm libibverbs
-@ENABLE_RABBITKW_TRUE@Requires: librabbitmq librabbitmq-devel
+#@ENABLE_SYSCLASSIB_TRUE@Requires: libibmad libibumad
+#@ENABLE_RDMA_TRUE@Requires: librdmacm libibverbs
+#@ENABLE_RABBITKW_TRUE@Requires: librabbitmq librabbitmq-devel
 
 BuildRequires: gettext-devel gcc glib2-devel
 @ENABLE_DOC_TRUE@BuildRequires: doxygen
