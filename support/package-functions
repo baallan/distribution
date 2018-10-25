@@ -142,6 +142,10 @@ function pack_ck_swig {
 			: echo swig 1.3.40 might be ok
 			return 0
 		fi
+		if ls /usr/share/swig/3.*/python/cstring.i &> /dev/null; then
+			: echo swig 3 might be ok
+			return 0
+		fi
 	fi
 
 	return 1
