@@ -53,7 +53,7 @@ STORE_OPTS="
 --enable-flatfile
 --enable-csv
 --enable-store
---disable-rabbitkw
+--enable-rabbitkw
 "
 SAMPLER_OPTS="
 --disable-cray_power_sampler
