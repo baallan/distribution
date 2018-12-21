@@ -1,0 +1,8 @@
+ovis
+plist
+rlist
+sos
+*log
+*.spec
+*.tar
+*.gz

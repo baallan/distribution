@@ -1,12 +1,12 @@
 #!/bin/bash
 #
 #
-packing=rhel7.unstable
-ovis_branch=v3.4.11
+packing=v41.rhel7.unstable
+ovis_branch=csv_remove_schema_limit
 sos_branch=master
 NetworkRequires=gitlab.opengridcomputing.com
 SOSREPO=gitlab@gitlab.opengridcomputing.com:tom/SOS.git
-OVISREPO=gitlab@gitlab.opengridcomputing.com:ovis/ovis.git
+OVISREPO=gitlab@gitlab.opengridcomputing.com:baallan/ovis.git
 
 . ../support/package-functions
 
@@ -82,7 +82,7 @@ SAMPLER_OPTS="
 --enable-meminfo
 --disable-lustre
 "
-allconfig="$PACK_OPTS $SECURITY_OPTS $NETWORK_OPTS $IFACE_OPTS $BALER_OPTS $STORE_OPTS $SAMPLER_OPTS $CRAY_LOCATIONS"
+allconfig="$PACK_OPTS $SECURITY_OPTS $NETWORK_OPTS $IFACE_OPTS $STORE_OPTS $SAMPLER_OPTS $CRAY_LOCATIONS"
 
 if ! pack_prechecks "$allconfig"; then
 	echo "Check dependencies listed above, install needed packages, and try again"
@@ -100,6 +100,7 @@ fi
 
 specdir=$dn
 SOSTAR=sos.tar
+
 /bin/rm -rf ovis
 if ! git clone $OVISREPO ovis; then
 	echo cannot checkout ovis.

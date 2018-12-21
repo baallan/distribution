@@ -27,7 +27,7 @@
 Summary: OVIS Commands and Libraries
 Name: ovis
 Version: @VERSION@
-Release: cts1x_%{build_timestamp}%{?dist}
+Release: desktop_%{build_timestamp}%{?dist}
 License: GPLv2 or BSD
 Group: %{ldms_all}
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
@@ -35,27 +35,27 @@ Source: %{name}-%{version}.tar.gz
 Obsoletes: ldms-all
 Requires: rpm >= 4.8.0
 Requires: libevent >= 2.0.21
-@ENABLE_LDMS_PYTHON_TRUE@Requires: python
+Requires: libyaml libyaml-devel
+@ENABLE_LDMS_PYTHON_TRUE@Requires: python2
+@ENABLE_PYTHON_TRUE@Requires:Cython
+@ENABLE_SWIG_TRUE@Requires: python2-devel
+@ENABLE_SOS_TRUE@Requires: numpy
 @ENABLE_SSL_TRUE@Requires: openssl
-#@ENABLE_LIBGENDERS_TRUE@Requires: boost-regex boost-program-options
-@ENABLE_LIBGENDERS_TRUE@Requires: genders
-#@ENABLE_SYSCLASSIB_TRUE@Requires: libibmad libibumad
-#@ENABLE_RDMA_TRUE@Requires: librdmacm libibverbs
-#@ENABLE_RABBITKW_TRUE@Requires: librabbitmq
+@ENABLE_LIBGENDERS_TRUE@Requires: boost-regex boost-program-options
+@ENABLE_LIBGENDERS_TRUE@Requires: genders libgenders-devel libgendersplusplus
 
 BuildRequires: gettext-devel gcc glib2-devel
 @ENABLE_DOC_TRUE@BuildRequires: doxygen
 @ENABLE_OVIS_AUTH_TRUE@BuildRequires: openssl-devel
 @ENABLE_SYSCLASSIB_TRUE@BuildRequires: libibverbs-devel
-@ENABLE_RDMA_TRUE@BuildRequires: librdmacm-devel libibverbs-devel
-@ENABLE_SYSCLASSIB_TRUE@BuildRequires: libibmad libibmad-devel libibumad libibumad-devel
+@ENABLE_RDMA_TRUE@BuildRequires: librdmacm-devel
 BuildRequires: libevent libevent-devel
-@ENABLE_SWIG_TRUE@BuildRequires: python python-devel
+BuildRequires: libyaml libyaml-devel
+@ENABLE_SWIG_TRUE@BuildRequires: python2 python2-devel
+@ENABLE_PYTHON_TRUE@BuildRequires: Cython
 @ENABLE_SWIG_TRUE@BuildRequires: swig
 @ENABLE_LIBGENDERS_TRUE@BuildRequires: boost-devel
-@ENABLE_LIBGENDERS_TRUE@BuildRequires: genders
-@ENABLE_KOKKOS_TRUE@BuildRequires: bison bison-devel flex flex-devel
-@ENABLE_RABBITKW_TRUE@BuildRequires: librabbitmq librabbitmq-devel
+@ENABLE_LIBGENDERS_TRUE@BuildRequires: genders libgenders-devel libgendersplusplus
 Url: http://ovis.ca.sandia.gov/
 
 # relocation prefix0 for file installs other than sysconfdir & localstatedir
@@ -83,7 +83,6 @@ Configured for relocation with @ac_configure_args@
 --sharedstatedir=%{relo_var}/lib
 --localstatedir=%{relo_var}
 
-%dump
 
 %prep
 %setup -q
@@ -92,7 +91,7 @@ Configured for relocation with @ac_configure_args@
 echo bTMPPATH %{_tmppath}
 rm -rf $RPM_BUILD_ROOT
 echo bBUILDROOT $RPM_BUILD_ROOT
-export CFLAGS="@CFLAGS@ %{optflags} -O1"
+export CFLAGS="@CFLAGS@ %{optflags} -O1 -g"
 ./configure @ac_configure_args@ --localstatedir=%{relo_var} --prefix=%{relo_usr} --exec-prefix=%{relo_usr} --bindir=%{relo_usr}/bin --sbindir=%{relo_usr}/sbin --sysconfdir=%{relo_etc} --datadir=%{relo_usr}/share --includedir=%{relo_usr}/include --libdir='${exec_prefix}/lib64' --libexecdir=%{relo_usr}/libexec --mandir=%{relo_usr}/share/man --infodir=%{relo_usr}/share/info --sharedstatedir=%{relo_var}/lib
 
 ncores=`grep -c ^processor /proc/cpuinfo`
@@ -118,10 +117,6 @@ for b in $RPM_BUILD_ROOT%{_sbindir}/ldms*; do
 	mv $b $RPM_BUILD_ROOT%{_libdir}/ovis-ldms/$bn
 	(cd $dn; ln -s .ldms-wrapper $bn)
 done
-# grunge for no-devel restriction in some environments
-@ENABLE_RABBITKW_TRUE@if test -f $RPM_BUILD_ROOT%{_libdir}/ovis-ldms/libstore_rabbitkw.so -o -f $RPM_BUILD_ROOT%{_libdir}/ovis-ldms/libstore_rabbitv3.so; then
-@ENABLE_RABBITKW_TRUE@	(cd $RPM_BUILD_ROOT%{_libdir}/ovis-ldms/; ln -s /usr/lib64/librabbitmq.so.4 librabbitmq.so; ln -s /usr/lib64/librabbitmq.so.4 .; ln -s /usr/lib64/librabbitmq.so.4.2.0 . )
-@ENABLE_RABBITKW_TRUE@fi
 # remove unpackaged files from the buildroot
 rm -f $RPM_BUILD_ROOT%{_libdir}/*.la
 rm -f $RPM_BUILD_ROOT%{_libdir}/ovis-ldms/lib*.la
@@ -323,6 +318,7 @@ Requires: ovis >= 3.0.0 python
 @ENABLE_SWIG_TRUE@%{_prefix}/lib/python2.7/site-packages/ovis_lib
 @ENABLE_SWIG_TRUE@%{_prefix}/lib/python2.7/site-packages/ovis_ldms
 @ENABLE_LDMS_PYTHON_TRUE@%{_prefix}/lib/python2.7/site-packages/ldmsd
+@ENABLE_PYTHON_TRUE@%{_prefix}/lib/python2.7/site-packages/sosdb
 #%%{python2_sitelib}/*
 #end python2
 # see https://fedoraproject.org/wiki/Packaging:Python_Old
@@ -386,14 +382,10 @@ bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh 
 	$RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/manifest
 
 %changelog
-* Thu Oct 25 2018 Ben Allan <baallan@sandia.gov> 3.4.11-1
-Update to 3.4.11 and try lanl suggested require reduction.
-* Wed Sep 26 2018 Ben Allan <baallan@sandia.gov> 3.4.10-1
-Update to 3.4.10 and remove runtime librabbitmq-devel dependence.
 * Wed Jul 25 2018 Ben Allan <baallan@sandia.gov> 3.4.8-1
 Config support of store_rabbitkw.
-* Fri Apr 13 2018 Ben Allan <baallan@sandia.gov> 4.0.0-rc
-Baler decoupled upstream. omnipath support added.
+* Thu Apr 19 2018 Ben Allan <baallan@sandia.gov> 3.4.6-1
+SOS/baler v3 deprecation. Wrapper file for sbin exec relocation support.
 * Wed Oct 18 2017 Ben Allan <baallan@sandia.gov> 3.4.4-4
 Cray relocation scheme
 * Thu Aug 31 2017 Ben Allan <baallan@sandia.gov> 3.4.4-2.1

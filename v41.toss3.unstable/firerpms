@@ -2,12 +2,11 @@
 #
 #
 packing=v41.toss3.unstable
-ovis_branch=ldmsd_usage_systemd_master
+ovis_branch=master
 sos_branch=master
 NetworkRequires=github.com
 #SOSREPO=gitlab@gitlab.opengridcomputing.com:tom/SOS.git
-OVISREPO=gitlab@gitlab.opengridcomputing.com:baallan/ovis.git
-#OVISREPO=/home/baallan/ovis/repos/buildfiles_3_18
+OVISREPO=gitlab@gitlab.opengridcomputing.com:ovis/ovis.git
 
 if test -n "$MODULEPATH"; then
 	module purge
@@ -42,7 +41,7 @@ IFACE_OPTS="
 --enable-swig
 --disable-readline
 --enable-ldms-python
---disable-python
+--enable-python
 --enable-libgenders
 --enable-genderssystemd
 "
@@ -51,10 +50,10 @@ STORE_OPTS="
 --enable-flatfile
 --enable-csv
 --enable-store
---enable-rabbitv3
+--enable-rabbitkw
 "
 SAMPLER_OPTS="
---enable-kokkos
+--disable-kokkos
 --disable-cray_power_sampler
 --disable-cray_system_sampler
 --disable-aries-gpcdr
@@ -74,6 +73,9 @@ SAMPLER_OPTS="
 --enable-perf
 --enable-jobid
 --enable-sensors
+--enable-dstat
+--enable-llnl-edac
+--enable-perf
 --enable-array_example
 --enable-procinterrupts
 --enable-procnetdev
@@ -203,7 +205,7 @@ if test -f sos/config.status; then
 	./sos/config.status --file=$specdir/ovis-${packing}.spec:$specdir/$specfile
 	specfile=ovis-${packing}.spec
 fi && \
-rpmbuild -vv --define "_topdir `pwd`/$packing" -ba $specdir/$specfile && \
+rpmbuild -v --define "_topdir `pwd`/$packing" -ba $specdir/$specfile && \
 touch completed
 if ! test -f completed; then
 	echo FAIL
