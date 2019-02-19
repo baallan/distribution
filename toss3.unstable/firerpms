@@ -2,11 +2,11 @@
 #
 #
 packing=toss3.unstable
-ovis_branch=v3.4.9
+ovis_branch=agg-config-support
 sos_branch=master
 NetworkRequires=github.com
 #SOSREPO=gitlab@gitlab.opengridcomputing.com:tom/SOS.git
-OVISREPO=gitlab@gitlab.opengridcomputing.com:ovis/ovis.git
+OVISREPO=gitlab@gitlab.opengridcomputing.com:baallan/ovis.git
 
 if test -n "$MODULEPATH"; then
 	module purge
@@ -85,6 +85,9 @@ SAMPLER_OPTS="
 --enable-vmstat
 --enable-meminfo
 --enable-lustre
+--enable-slurmtest
+--enable-mmdebug
+--enable-filesingle
 "
 allconfig="$PACK_OPTS $SECURITY_OPTS $NETWORK_OPTS $IFACE_OPTS $BALER_OPTS $STORE_OPTS $SAMPLER_OPTS $CRAY_LOCATIONS"
 
