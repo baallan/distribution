@@ -1,13 +1,13 @@
-As of March 2017, there are several planned platforms, organized by directory. See below for instructions on package construction.
+As of Dec 2018, there are several planned platforms, organized by directory. See below for instructions on package construction.
 
 ## Platforms with binary packaging
 
-* **toss2/** TOSS 2 RHEL 6 derivative with specialized plugins
+* **toss2/** TOSS 2 RHEL 6 derivative with specialized plugins is deprecated.
 
 * **toss3/** TOSS 3 RHEL 7 derivative with specialized plugins
-* **rhel6/** desktop Redhat Enterprise 6 without specialized subsystems.
+* **rhel6/** desktop Redhat Enterprise 6 without specialized subsystems is deprecated.
 * **rhel7/** desktop Redhat Enterprise 7 without specialized subsystems.
-* **cle6/** Cray Linux Environment 6 (Rhine) with specialized plugins
+* **rhel7-rabbitmq/** desktop Redhat Enterprise 7 with librabbitmq packages added.
 
 ## Platforms with source build examples
 * **u16/** Ubuntu 16 without specialized plugins
@@ -22,6 +22,12 @@ Clone this repository to a scratch directory, go to the directory of interest, a
     ./firerpms
 
 If successful, this will get you a list of rpms for the latest stable public release on that platform. The rpms are relocatable, which is at variance with most Linux distribution's standard policies.
+You will need pre-installed the utility packages for building RPMs in general.
+
+## Making packages off the grid
+Sites which need to build RPMs on a machine without external access to github
+must stage a clone (not a zip file) of distribution, ovis, and SOS repositories.
+See the [OffGrid.md](OffGrid.md) instructions for the simplest way to do it.
 
 ## Installation
 See the [Installation.md](Installation.md) file for RPM usage guidance.

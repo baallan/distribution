@@ -2,12 +2,11 @@
 #
 #
 packing=v41.toss3.unstable
-ovis_branch=gender_scripts_upport_v3bugfixes
+ovis_branch=master
 sos_branch=master
 NetworkRequires=github.com
 #SOSREPO=gitlab@gitlab.opengridcomputing.com:tom/SOS.git
-OVISREPO=gitlab@gitlab.opengridcomputing.com:baallan/ovis.git
-#OVISREPO=/home/baallan/ovis/repos/buildfiles_3_18
+OVISREPO=gitlab@gitlab.opengridcomputing.com:ovis/ovis.git
 
 if test -n "$MODULEPATH"; then
 	module purge
@@ -47,11 +46,11 @@ IFACE_OPTS="
 --enable-genderssystemd
 "
 STORE_OPTS="
---disable-sos
+--enable-sos
 --enable-flatfile
 --enable-csv
 --enable-store
---enable-rabbitv3
+--enable-rabbitkw
 "
 SAMPLER_OPTS="
 --disable-kokkos
@@ -206,7 +205,7 @@ if test -f sos/config.status; then
 	./sos/config.status --file=$specdir/ovis-${packing}.spec:$specdir/$specfile
 	specfile=ovis-${packing}.spec
 fi && \
-rpmbuild -vv --define "_topdir `pwd`/$packing" -ba $specdir/$specfile && \
+rpmbuild -v --define "_topdir `pwd`/$packing" -ba $specdir/$specfile && \
 touch completed
 if ! test -f completed; then
 	echo FAIL

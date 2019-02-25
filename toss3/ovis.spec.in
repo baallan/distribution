@@ -123,8 +123,6 @@ done
 # remove unpackaged files from the buildroot
 rm -f $RPM_BUILD_ROOT%{_libdir}/*.la
 rm -f $RPM_BUILD_ROOT%{_libdir}/ovis-ldms/lib*.la
-# fix in subsequent after sorting use of sysconfdir or share/baler in baler
-@ENABLE_BALER_TRUE@rm -f $RPM_BUILD_ROOT%{_prefix}/etc/ovis/eng-dictionary
 rm $RPM_BUILD_ROOT%{_bindir}/test_*
 rm $RPM_BUILD_ROOT%{_bindir}/ldms_ban.sh
 find $RPM_BUILD_ROOT%{_docdir}/ovis-ldms-%{version} -maxdepth 1 -type f -exec mv {} $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}/ \;
@@ -139,14 +137,6 @@ mkdir -p -m 755 $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/ldms.d/ClusterGenders
 mkdir -p -m 755 $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/ldms.d/ClusterSecrets
 mkdir -p -m 755 $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/ldms.d/plugins-conf
 
-# relocate files from symlinks that are broken if relocated
-@ENABLE_BALER_TRUE@cp $RPM_BUILD_ROOT%{_prefix}/lib/python2.7/site-packages/baler/bhquery.py $RPM_BUILD_ROOT%{_bindir}/bhquery.real
-@ENABLE_BALER_TRUE@cp $RPM_BUILD_ROOT%{_prefix}/lib/python2.7/site-packages/abhttp/bclient.py $RPM_BUILD_ROOT%{_bindir}/bclient.real
-@ENABLE_BALER_TRUE@rm $RPM_BUILD_ROOT%{_bindir}/bhquery
-@ENABLE_BALER_TRUE@rm $RPM_BUILD_ROOT%{_bindir}/bclient
-@ENABLE_BALER_TRUE@mv $RPM_BUILD_ROOT%{_bindir}/bhquery.real $RPM_BUILD_ROOT%{_bindir}/bhquery
-@ENABLE_BALER_TRUE@mv $RPM_BUILD_ROOT%{_bindir}/bclient.real $RPM_BUILD_ROOT%{_bindir}/bclient
-
 echo making manifest
 ./util/relocation/bld_manifest.sh %{buildroot}%{_prefix} %{buildroot}%{_sysconfdir} %{buildroot}%{_localstatedir} > %{buildroot}%{_prefix}/share/doc/ovis-@VERSION@/relocation/manifest
 
@@ -155,33 +145,6 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root)
-@ENABLE_BALER_TRUE@%exclude %{_bindir}/bhquery
-@ENABLE_BALER_TRUE@%exclude %{_sbindir}/balerd
-@ENABLE_BALER_TRUE@%exclude %{_sbindir}/bhttpd
-@ENABLE_BALER_TRUE@%exclude %{_bindir}/baler-pedigree
-@ENABLE_BALER_TRUE@%exclude %{_bindir}/bassoc*
-@ENABLE_BALER_TRUE@%exclude %{_bindir}/bclient
-@ENABLE_BALER_TRUE@%exclude %{_bindir}/bcsv2bnumvec
-@ENABLE_BALER_TRUE@%exclude %{_bindir}/b*test
-@ENABLE_BALER_TRUE@%exclude %{_bindir}/bmap_dump
-@ENABLE_BALER_TRUE@%exclude %{_bindir}/bmeta_cluster
-@ENABLE_BALER_TRUE@%exclude %{_bindir}/bnumvec
-@ENABLE_BALER_TRUE@%exclude %{_bindir}/bquery
-@ENABLE_BALER_TRUE@%exclude %{_bindir}/bsos_part_modify
-@ENABLE_BALER_TRUE@%exclude %{_bindir}/btkn_dump
-@ENABLE_BALER_TRUE@%exclude %{_libdir}/libbaler.*
-@ENABLE_BALER_TRUE@%exclude %{_libdir}/libbassocimg.*
-@ENABLE_BALER_TRUE@%exclude %{_libdir}/libbin_metric.*
-@ENABLE_BALER_TRUE@%exclude %{_libdir}/libbin_rsyslog_tcp.*
-@ENABLE_BALER_TRUE@%exclude %{_libdir}/libbin_test.*
-@ENABLE_BALER_TRUE@%exclude %{_libdir}/libbout_me.*
-@ENABLE_BALER_TRUE@%exclude %{_libdir}/libbout_sos.*
-@ENABLE_BALER_TRUE@%exclude %{_libdir}/libbout_sos_img.*
-@ENABLE_BALER_TRUE@%exclude %{_libdir}/libbout_sos_msg.*
-@ENABLE_BALER_TRUE@%exclude %{_libdir}/libbquery.*
-@ENABLE_BALER_TRUE@%exclude %{_libdir}/libbsos_img.*
-@ENABLE_BALER_TRUE@%exclude %{_libdir}/libbsos_msg.*
-
 %{_libdir}/*
 %{_bindir}/*
 %{_sbindir}/*
@@ -206,48 +169,6 @@ rm -rf $RPM_BUILD_ROOT
 @ENABLE_SOS_TRUE@%exclude %{_libdir}/ovis-ldms/libstore_sos*
 @ENABLE_SOS_TRUE@%exclude %{_sbindir}/ldmsd_sos_init
 #end core
-
-@ENABLE_BALER_TRUE@# baler
-@ENABLE_BALER_TRUE@%package baler
-@ENABLE_BALER_TRUE@Summary: OVIS Baler tools
-@ENABLE_BALER_TRUE@Group: %{ldms_grp}
-@ENABLE_BALER_TRUE@Requires: ovis = @VERSION@
-@ENABLE_BALER_TRUE@Requires: libyaml python
-@ENABLE_BALER_TRUE@BuildRequires: libyaml libyaml-devel
-@ENABLE_BALER_TRUE@%description baler
-@ENABLE_BALER_TRUE@This provides log file analysis tools collectively known as baler.
-@ENABLE_BALER_TRUE@%files baler
-@ENABLE_BALER_TRUE@%defattr(-,root,root)
-@ENABLE_BALER_TRUE@%{_prefix}/lib/python2.7/site-packages/baler
-@ENABLE_BALER_TRUE@%{_prefix}/lib/python2.7/site-packages/abhttp
-@ENABLE_BALER_TRUE@%{_bindir}/bhquery
-@ENABLE_BALER_TRUE@%{_sbindir}/balerd
-@ENABLE_BALER_TRUE@%{_sbindir}/bhttpd
-@ENABLE_BALER_TRUE@%{_bindir}/baler-pedigree
-@ENABLE_BALER_TRUE@%{_bindir}/bassoc*
-@ENABLE_BALER_TRUE@%{_bindir}/bclient
-@ENABLE_BALER_TRUE@%{_bindir}/bcsv2bnumvec
-@ENABLE_BALER_TRUE@%{_bindir}/b*test
-@ENABLE_BALER_TRUE@%{_bindir}/bmap_dump
-@ENABLE_BALER_TRUE@%{_bindir}/bmeta_cluster
-@ENABLE_BALER_TRUE@%{_bindir}/bnumvec
-@ENABLE_BALER_TRUE@%{_bindir}/bquery
-@ENABLE_BALER_TRUE@%{_bindir}/bsos_part_modify
-@ENABLE_BALER_TRUE@%{_bindir}/btkn_dump
-@ENABLE_BALER_TRUE@%{_libdir}/libbaler.*
-@ENABLE_BALER_TRUE@%{_libdir}/libbassocimg.*
-@ENABLE_BALER_TRUE@%{_libdir}/libbin_metric.*
-@ENABLE_BALER_TRUE@%{_libdir}/libbin_rsyslog_tcp.*
-@ENABLE_BALER_TRUE@%{_libdir}/libbin_test.*
-@ENABLE_BALER_TRUE@%{_libdir}/libbout_me.*
-@ENABLE_BALER_TRUE@%{_libdir}/libbout_sos.*
-@ENABLE_BALER_TRUE@%{_libdir}/libbout_sos_img.*
-@ENABLE_BALER_TRUE@%{_libdir}/libbout_sos_msg.*
-@ENABLE_BALER_TRUE@%{_libdir}/libbquery.*
-@ENABLE_BALER_TRUE@%{_libdir}/libbsos_img.*
-@ENABLE_BALER_TRUE@%{_libdir}/libbsos_msg.*
-
-@ENABLE_BALER_TRUE@# end baler
 
 # devel
 %package devel
@@ -300,7 +221,6 @@ control file, use of libgenders can be bypassed.
 
 %files initscripts-base
 %defattr(-,root,root)
-@ENABLE_BALER_TRUE@%config(noreplace) %{_sysconfdir}/baler/*
 @ENABLE_TOSS_SYSTEMD_TRUE@%{_sysconfdir}/sysconfig/*
 @ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/sysconfig/ldms.d/ldmsd.local.conf
 @ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/sysconfig/ldms.d/ldmsd.agg.conf
@@ -378,7 +298,6 @@ Doxygen files for ovis package.
 %exclude %{_datadir}/doc/ovis-ldms-%{version}/examples
 ## %{_datadir}/doc/ovis-lib-%{version}
 @ENABLE_SOS_TRUE@# %{_datadir}/doc/sos
-@ENABLE_BALER_TRUE@# %{_datadir}/doc/baler
 ## %%docdir %{_defaultdocdir}
 %docdir /usr/share/doc
 %post doc
@@ -389,7 +308,7 @@ bash %{_prefix}/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
 	%{_prefix}/share/doc/ovis-@VERSION@/relocation/manifest
 
 %package python2
-Summary: Python files for LDMS, SOS, and baler
+Summary: Python files for LDMS, SOS
 %description python2
 Python files for ovis
 # install needs
@@ -402,8 +321,6 @@ Requires: ovis >= 3.0.0 python
 @ENABLE_SWIG_TRUE@%{_prefix}/lib/python2.7/site-packages/ovis_lib
 @ENABLE_SWIG_TRUE@%{_prefix}/lib/python2.7/site-packages/ovis_ldms
 @ENABLE_LDMS_PYTHON_TRUE@%{_prefix}/lib/python2.7/site-packages/ldmsd
-@ENABLE_BALER_TRUE@%exclude %{_prefix}/lib/python2.7/site-packages/baler
-@ENABLE_BALER_TRUE@%exclude %{_prefix}/lib/python2.7/site-packages/abhttp
 #%%{python2_sitelib}/*
 #end python2
 # see https://fedoraproject.org/wiki/Packaging:Python_Old

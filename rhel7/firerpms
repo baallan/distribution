@@ -49,11 +49,11 @@ BALER_OPTS="
 --disable-baler
 "
 STORE_OPTS="
---disable-sos
+--enable-sos
 --enable-flatfile
 --enable-csv
 --enable-store
---enable-rabbitkw
+--disable-rabbitkw
 "
 SAMPLER_OPTS="
 --disable-cray_power_sampler

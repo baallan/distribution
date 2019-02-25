@@ -6,8 +6,7 @@ ovis_branch=agg-config-support
 sos_branch=master
 NetworkRequires=github.com
 #SOSREPO=gitlab@gitlab.opengridcomputing.com:tom/SOS.git
-#OVISREPO=gitlab@gitlab.opengridcomputing.com:baallan/ovis.git
-OVISREPO=/ascldap/users/baallan/serrano/dist.gh.8.3.18/toss3.unstable/myovis
+OVISREPO=gitlab@gitlab.opengridcomputing.com:baallan/ovis.git
 
 if test -n "$MODULEPATH"; then
 	module purge
@@ -39,7 +38,6 @@ NETWORK_OPTS="
 CRAY_LOCATIONS=""
 
 IFACE_OPTS="
---enable-mmdebug
 --enable-swig
 --disable-readline
 --enable-ldms-python
@@ -75,7 +73,6 @@ SAMPLER_OPTS="
 --disable-switchx
 --disable-sensors
 --enable-dstat
---enable-filesingle
 --enable-llnl-edac
 --enable-sysclassib
 --enable-opa2
@@ -90,6 +87,7 @@ SAMPLER_OPTS="
 --enable-vmstat
 --enable-meminfo
 --enable-lustre
+--enable-filesingle
 "
 allconfig="$PACK_OPTS $SECURITY_OPTS $NETWORK_OPTS $IFACE_OPTS $BALER_OPTS $STORE_OPTS $SAMPLER_OPTS $CRAY_LOCATIONS"
 

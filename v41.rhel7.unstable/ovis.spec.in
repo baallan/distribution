@@ -27,7 +27,7 @@
 Summary: OVIS Commands and Libraries
 Name: ovis
 Version: @VERSION@
-Release: cts1x_%{build_timestamp}%{?dist}
+Release: desktop_%{build_timestamp}%{?dist}
 License: GPLv2 or BSD
 Group: %{ldms_all}
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
@@ -35,22 +35,21 @@ Source: %{name}-%{version}.tar.gz
 Obsoletes: ldms-all
 Requires: rpm >= 4.8.0
 Requires: libevent >= 2.0.21
-@ENABLE_LDMS_PYTHON_TRUE@Requires: python
+Requires: libyaml libyaml-devel
+@ENABLE_LDMS_PYTHON_TRUE@Requires: python2
+@ENABLE_SWIG_TRUE@Requires: python2-devel
+@ENABLE_SOS_TRUE@Requires: numpy
 @ENABLE_SSL_TRUE@Requires: openssl
 #@ENABLE_LIBGENDERS_TRUE@Requires: boost-regex boost-program-options
 @ENABLE_LIBGENDERS_TRUE@Requires: genders
-#@ENABLE_SYSCLASSIB_TRUE@Requires: libibmad libibumad
-#@ENABLE_RDMA_TRUE@Requires: librdmacm libibverbs
-#@ENABLE_RABBITKW_TRUE@Requires: librabbitmq
-
 BuildRequires: gettext-devel gcc glib2-devel
 @ENABLE_DOC_TRUE@BuildRequires: doxygen
 @ENABLE_OVIS_AUTH_TRUE@BuildRequires: openssl-devel
 @ENABLE_SYSCLASSIB_TRUE@BuildRequires: libibverbs-devel
-@ENABLE_RDMA_TRUE@BuildRequires: librdmacm-devel libibverbs-devel
-@ENABLE_SYSCLASSIB_TRUE@BuildRequires: libibmad libibmad-devel libibumad libibumad-devel
+@ENABLE_RDMA_TRUE@BuildRequires: librdmacm-devel
 BuildRequires: libevent libevent-devel
-@ENABLE_SWIG_TRUE@BuildRequires: python python-devel
+BuildRequires: libyaml libyaml-devel
+@ENABLE_SWIG_TRUE@BuildRequires: python2 python2-devel
 @ENABLE_SWIG_TRUE@BuildRequires: swig
 @ENABLE_LIBGENDERS_TRUE@BuildRequires: boost-devel
 @ENABLE_LIBGENDERS_TRUE@BuildRequires: genders
@@ -83,7 +82,6 @@ Configured for relocation with @ac_configure_args@
 --sharedstatedir=%{relo_var}/lib
 --localstatedir=%{relo_var}
 
-%dump
 
 %prep
 %setup -q
@@ -92,7 +90,7 @@ Configured for relocation with @ac_configure_args@
 echo bTMPPATH %{_tmppath}
 rm -rf $RPM_BUILD_ROOT
 echo bBUILDROOT $RPM_BUILD_ROOT
-export CFLAGS="@CFLAGS@ %{optflags} -O1"
+export CFLAGS="@CFLAGS@ %{optflags} -O1 -g"
 ./configure @ac_configure_args@ --localstatedir=%{relo_var} --prefix=%{relo_usr} --exec-prefix=%{relo_usr} --bindir=%{relo_usr}/bin --sbindir=%{relo_usr}/sbin --sysconfdir=%{relo_etc} --datadir=%{relo_usr}/share --includedir=%{relo_usr}/include --libdir='${exec_prefix}/lib64' --libexecdir=%{relo_usr}/libexec --mandir=%{relo_usr}/share/man --infodir=%{relo_usr}/share/info --sharedstatedir=%{relo_var}/lib
 
 ncores=`grep -c ^processor /proc/cpuinfo`
@@ -207,6 +205,7 @@ interest on compute nodes in production clusters.
 %{_bindir}/ldms-meminfo.sh
 %{_bindir}/ldms-static-test.sh
 %{_datadir}/doc/ovis-ldms-%{version}/examples/static-test
+%{_datadir}/doc/ovis-ldms-%{version}/examples/slurm-test
 #end test
 
 # initscripts
@@ -392,8 +391,8 @@ Update to 3.4.11 and try lanl suggested require reduction.
 Update to 3.4.10 and remove runtime librabbitmq-devel dependence.
 * Wed Jul 25 2018 Ben Allan <baallan@sandia.gov> 3.4.8-1
 Config support of store_rabbitkw.
-* Fri Apr 13 2018 Ben Allan <baallan@sandia.gov> 4.0.0-rc
-Baler decoupled upstream. omnipath support added.
+* Thu Apr 19 2018 Ben Allan <baallan@sandia.gov> 3.4.6-1
+SOS/baler v3 deprecation. Wrapper file for sbin exec relocation support.
 * Wed Oct 18 2017 Ben Allan <baallan@sandia.gov> 3.4.4-4
 Cray relocation scheme
 * Thu Aug 31 2017 Ben Allan <baallan@sandia.gov> 3.4.4-2.1

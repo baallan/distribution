@@ -20,6 +20,7 @@ Table of Contents
     1. [Sysclassib](#sysclassib)
     1. [Opa2](#opa2)
     1. [Procnetdev](#procnetdev)
+    1. [Procstat](#procstat)
     1. [Meminfo](#meminfo)
     1. [Splunk followers](#splunk-followers)
 1. [Milly example](#milly-example)
@@ -275,7 +276,7 @@ The next file contains the ldmsd-related genders definitions. For administrative
     # we have to list the filesystem mounts...
     ser[1-1122],serrano-login[1-6] ldmsd_lustre2_client=llite/fscratch&gscratch:with_jobid/1
     
-    # procstatutil2 plugin settings
+    # procstat plugin settings
     # we have to list the maximum cpu count (or hyperthread count) seen on any node type.
     # Nodes without hyperthreading will end up with columns of zeroed data unless
     # an alternate schema name is specified.
@@ -344,27 +345,35 @@ The next file contains the ldmsd-related genders definitions. For administrative
 
 ## Special considerations
 
-While some sampler plugins collect a standard data set, others must be configured to select the right data. Additionally, some must be configured to avoid conflicts in data types.
+While some sampler plugins collect a standard data set, others must be configured to select the right data. Additionally, some must be configured to avoid conflicts in schema data layouts. The man page name for details is given in parentheses. 
 
 ## Timing
 
-Data samples are collected synchronously across a cluster by specifying an interval between the samples (in microseconds) and an offset. Store plugins should be configured with the same interval or one which is an even multiple of the sampling interval if logging less data is desired. The target time will be (time since the epoch / interval) + offset. The offsets allowed are in the half-interval range (-(interval/2 + 1) : interval/2 - 1). By convention, plugins producing job ids are run with a negative offset (such as -100000) and most other samplers receive an offset of 0. To ensure that all metrics have been collected before aggregation, a positive offset (200000) is applied.
+Data samples are collected synchronously across a cluster by specifying an interval between the samples (in microseconds) and an offset. Store plugins should be configured with the same interval or one which is an even multiple of the sampling interval if logging less data is desired. The target time will be (time since the epoch / interval) + offset. The offsets allowed are in the half-interval range (-(interval/2) + 1) : interval/2 - 1). By convention, plugins producing job ids are run with a negative offset (such as -100000) and most other samplers receive an offset of 0. To ensure that all metrics have been collected before aggregation, a positive offset (200000) is applied.
+
+A common example is to use an offset of 0 for all producer node samplers, an interval of 60000000 microseconds (60 seconds), a matching interval of 60000000 on the aggregator node updater, and an offset of 100000 microseconds. If a second level (L2) of aggregation is used, it needs a longer offset to give all the sets time to arrive at the first aggregator, possibly 1000000 (1 second) or longer. The exact offset needed for an L2 aggregator must be determined experimentally to avoid inconsistent set results. Inconsistency can be detected by examining the ldmsd log. 
+
+On a high speed cluster network with RDMA (InfiniBand or Cray HSNs), a producer sampling interval of 1000000 (1 second) has proven to be effective and not to interfere with scientific applications.
 
 ## Sysclassib
 
-The sysclassib sampler collects InfiniBand (IB) data from local network ports. A port or ports are specified as configuration argument "ports/card1.port1&card2.port2". Port identifiers can be found by running ibstat. When reviewing the ibstat output, check that the interface is active and is an IB interface rather than high speed Ethernet or Omnipath interface. If, as is usually the case, node classes within the cluster have different numbers of active IB ports, then a different schema name is needed on each node type. For example, schema/sysclassib_gw on Lustre gateway nodes and schema/sysclassib_ln on login nodes. On compute nodes, schema/sysclassib_cn:with_jobid=1. Bandwidth rates will be computed and stored if option metrics_type/1 is specified. Rates are left out if metrics_type/0 is specified.
+(Plugin_sysclassib) The sysclassib sampler collects InfiniBand (IB) data from local network ports. A port or ports are specified as configuration argument "ports/card1.port1&card2.port2". Port identifiers can be found by running ibstat. When reviewing the ibstat output, check that the interface is active and is an IB interface rather than high speed Ethernet or Omnipath interface. If, as is usually the case, node classes within the cluster have different numbers of active IB ports, then a different schema name is needed on each node type. For example, schema/sysclassib_gw on Lustre gateway nodes and schema/sysclassib_ln on login nodes. On compute nodes, schema/sysclassib_cn:with_jobid=1. Bandwidth rates will be computed and stored if option metrics_type/1 is specified. Rates are left out if metrics_type/0 is specified.
 
 ## Opa2
 
-The opa2 sampler collects Omnipath data from local network ports. The ibstat command can be used to gather the port names. As with sysclassib, read carefully to distinguish the HFI ports from IB and Ethernet ports.
+(Plugin_opa2) The opa2 sampler collects OmniPath data from local network ports. The ibstat command can be used to gather the port names. As with sysclassib, read carefully to distinguish the HFI ports from IB and Ethernet ports.
 
 ## Procnetdev
 
-Similar to the sysclassib sampler, the Ethernet interfaces monitored are specified with a list parameter ifaces/ethport1&ethport2. For example, ifaces/lo&eth0. Different node classes may need to be separated by specifying schema name such as schema/procnetdev_login or schema/procnetdev_cn.
+(Plugin_procnetdev) Similar to the sysclassib sampler, the Ethernet interfaces monitored are specified with a list parameter ifaces/ethport1&ethport2. For example, ifaces/lo&eth0. Different node classes may need to be separated by specifying schema name such as schema/procnetdev_login or schema/procnetdev_cn.
+
+## Procstat
+
+(Plugin_procstat) %CPU statistics (overall and per core) are collected with the procstat plugin. On a heterogeneous cluster (with respect to core count or hyperthread enablement) the core count (maxcpu) represented in the data collection must be tailored to avoid schema conflicts, as described in the man page. The core count option may also be used to suppress the per-core data collection entirely.
 
 ## Meminfo 
 
-The contents of meminfo /proc/meminfo depend on the compiled kernel and/or the memory features used by applications. The metrics are an initial group and optionally cma, dma, or huge page related values. The meminfo plugin collects and reports the metrics it first sees. Different nodes, not just different node classes may need schema/meminfo_{something} to prevent misidentification or omission of data.
+(Plugin_meminfo) The contents of meminfo /proc/meminfo depend on the compiled kernel and/or the memory features used by applications. The metrics are an initial group and optionally cma, dma, or huge page related values. The meminfo plugin collects and reports the metrics it first sees. Different nodes, not just different node classes may need schema/meminfo_{something} to prevent misidentification or omission of data.
 
 ## Splunk followers
 
@@ -373,9 +382,11 @@ Both store_csv and store_flatfile output can be read by a splunk input tool. In 
     # everything after the tail -F is an approximation; site details will vary.
     tail -F .../meminfo/Active | ...
 
-## Flat file roll over
+## Flatfile store
 
-Presently the flat file store does not support rollover directly by ldmsd. They can be rolled using logrotate. Prerotate should use "systemctl stop ldmsd@agg.service" and postrotate should restart it. At lower sampling frequencies, data loss may be avoided by carefully scheduling logrotate with cron.
+(Plugin_store_flatfile) Presently the flat file store does not support rollover directly by ldmsd. They can be rolled using logrotate. Prerotate should use "systemctl stop ldmsd@agg.service" and postrotate should restart it. At lower sampling frequencies, data loss may be avoided by carefully scheduling logrotate with cron.
+
+Storage can be limited to the subset of desired metrics by defining storage policy metric lists (ldmsd) or by defining a white list or black list.
 
 ## Milly example
 
