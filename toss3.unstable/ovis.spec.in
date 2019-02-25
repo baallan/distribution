@@ -27,7 +27,7 @@
 Summary: OVIS Commands and Libraries
 Name: ovis
 Version: @VERSION@
-Release: 0.2%{?dist}
+Release: 2.0%{?dist}
 License: GPLv2 or BSD
 Group: %{ldms_all}
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
@@ -37,11 +37,11 @@ Requires: rpm >= 4.8.0
 Requires: libevent >= 2.0.21
 @ENABLE_LDMS_PYTHON_TRUE@Requires: python
 @ENABLE_SSL_TRUE@Requires: openssl
-@ENABLE_LIBGENDERS_TRUE@Requires: boost-regex boost-program-options
+#@ENABLE_LIBGENDERS_TRUE@Requires: boost-regex boost-program-options
 @ENABLE_LIBGENDERS_TRUE@Requires: genders
-@ENABLE_SYSCLASSIB_TRUE@Requires: libibmad libibumad
-@ENABLE_RDMA_TRUE@Requires: librdmacm libibverbs
-@ENABLE_RABBITKW_TRUE@Requires: librabbitmq librabbitmq-devel
+#@ENABLE_SYSCLASSIB_TRUE@Requires: libibmad libibumad
+#@ENABLE_RDMA_TRUE@Requires: librdmacm libibverbs
+#@ENABLE_RABBITKW_TRUE@Requires: librabbitmq
 
 BuildRequires: gettext-devel gcc glib2-devel
 @ENABLE_DOC_TRUE@BuildRequires: doxygen
@@ -118,11 +118,15 @@ for b in $RPM_BUILD_ROOT%{_sbindir}/ldms*; do
 	mv $b $RPM_BUILD_ROOT%{_libdir}/ovis-ldms/$bn
 	(cd $dn; ln -s .ldms-wrapper $bn)
 done
+# grunge for no-devel restriction in some environments
+@ENABLE_RABBITKW_TRUE@if test -f $RPM_BUILD_ROOT%{_libdir}/ovis-ldms/libstore_rabbitkw.so -o -f $RPM_BUILD_ROOT%{_libdir}/ovis-ldms/libstore_rabbitv3.so; then
+@ENABLE_RABBITKW_TRUE@	(cd $RPM_BUILD_ROOT%{_libdir}/ovis-ldms/; ln -s /usr/lib64/librabbitmq.so.4 librabbitmq.so; ln -s /usr/lib64/librabbitmq.so.4 .; ln -s /usr/lib64/librabbitmq.so.4.2.0 . )
+@ENABLE_RABBITKW_TRUE@fi
 # remove unpackaged files from the buildroot
 rm -f $RPM_BUILD_ROOT%{_libdir}/*.la
 rm -f $RPM_BUILD_ROOT%{_libdir}/ovis-ldms/lib*.la
 # fix in subsequent after sorting use of sysconfdir or share/baler in baler
-@ENABLE_BALER_TRUE@rm -f $RPM_BUILD_ROOT%{_prefix}/etc/ovis/eng-dictionary
+#@ENABLE_BALER_TRUE@rm -f $RPM_BUILD_ROOT%{_prefix}/etc/ovis/eng-dictionary
 rm $RPM_BUILD_ROOT%{_bindir}/test_*
 rm $RPM_BUILD_ROOT%{_bindir}/ldms_ban.sh
 find $RPM_BUILD_ROOT%{_docdir}/ovis-ldms-%{version} -maxdepth 1 -type f -exec mv {} $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}/ \;
@@ -465,6 +469,18 @@ bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh 
 	$RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/manifest
 
 %changelog
+* Mon Feb 4 2019 Ben Allan <baallan@sandia.gov> 3.4.11-2.0
+SNL patches for transport/daemon debugging:
+null argument checks in many places.
+uninit return fixes in many places.
+added chkmeminfo plugin and store_csvdbg plugin
+added set size change trap in meminfo plugin
+* Tue Nov 27 2018 Ben Allan <baallan@sandia.gov> 3.4.11-1.1
+SNL patch for store_csv to include sampling/transport data.
+* Thu Oct 25 2018 Ben Allan <baallan@sandia.gov> 3.4.11-1
+Update to 3.4.11 and try lanl suggested require reduction.
+* Wed Sep 26 2018 Ben Allan <baallan@sandia.gov> 3.4.10-1
+Update to 3.4.10 and remove runtime librabbitmq-devel dependence.
 * Wed Jul 25 2018 Ben Allan <baallan@sandia.gov> 3.4.8-1
 Config support of store_rabbitkw.
 * Thu Apr 19 2018 Ben Allan <baallan@sandia.gov> 3.4.6-0

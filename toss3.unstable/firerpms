@@ -2,11 +2,12 @@
 #
 #
 packing=toss3.unstable
-ovis_branch=v3.4.9
+ovis_branch=agg-config-support
 sos_branch=master
 NetworkRequires=github.com
 #SOSREPO=gitlab@gitlab.opengridcomputing.com:tom/SOS.git
-OVISREPO=gitlab@gitlab.opengridcomputing.com:ovis/ovis.git
+#OVISREPO=gitlab@gitlab.opengridcomputing.com:baallan/ovis.git
+OVISREPO=/ascldap/users/baallan/serrano/dist.gh.8.3.18/toss3.unstable/myovis
 
 if test -n "$MODULEPATH"; then
 	module purge
@@ -38,12 +39,15 @@ NETWORK_OPTS="
 CRAY_LOCATIONS=""
 
 IFACE_OPTS="
+--enable-mmdebug
 --enable-swig
 --disable-readline
 --enable-ldms-python
 --enable-python
 --enable-libgenders
 --enable-genderssystemd
+--enable-slurmtest
+--enable-mmdebug
 "
 BALER_OPTS="
 --disable-baler
@@ -71,6 +75,7 @@ SAMPLER_OPTS="
 --disable-switchx
 --disable-sensors
 --enable-dstat
+--enable-filesingle
 --enable-llnl-edac
 --enable-sysclassib
 --enable-opa2
