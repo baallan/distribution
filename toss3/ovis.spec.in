@@ -205,6 +205,7 @@ interest on compute nodes in production clusters.
 %{_bindir}/ldms-meminfo.sh
 %{_bindir}/ldms-static-test.sh
 %{_datadir}/doc/ovis-ldms-%{version}/examples/static-test
+%{_datadir}/doc/ovis-ldms-%{version}/examples/slurm-test
 #end test
 
 # initscripts
