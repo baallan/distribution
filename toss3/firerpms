@@ -2,7 +2,7 @@
 #
 #
 packing=toss3
-ovis_branch=v3.4.11
+ovis_branch=v3.4.12
 sos_branch=master
 NetworkRequires=github.com
 #SOSREPO=gitlab@gitlab.opengridcomputing.com:tom/SOS.git
@@ -44,6 +44,8 @@ IFACE_OPTS="
 --enable-python
 --enable-libgenders
 --enable-genderssystemd
+--enable-slurmtest
+--disable-mmdebug
 "
 BALER_OPTS="
 --disable-baler
@@ -70,6 +72,7 @@ SAMPLER_OPTS="
 --disable-generic_sampler
 --disable-switchx
 --disable-sensors
+--disable-procsensors
 --enable-dstat
 --enable-llnl-edac
 --enable-sysclassib
@@ -80,11 +83,11 @@ SAMPLER_OPTS="
 --enable-procinterrupts
 --enable-procnetdev
 --enable-procnfs
---enable-procsensors
 --enable-procstat
 --enable-vmstat
 --enable-meminfo
 --enable-lustre
+--enable-filesingle
 "
 allconfig="$PACK_OPTS $SECURITY_OPTS $NETWORK_OPTS $IFACE_OPTS $BALER_OPTS $STORE_OPTS $SAMPLER_OPTS $CRAY_LOCATIONS"
 
@@ -209,7 +212,7 @@ if test -f sos/config.status; then
 	./sos/config.status --file=$specdir/ovis-${packing}.spec:$specdir/$specfile
 	specfile=ovis-${packing}.spec
 fi && \
-rpmbuild -v --define "_topdir `pwd`/$packing" -ba $specdir/$specfile && \
+rpmbuild -vv --define "_topdir `pwd`/$packing" -ba $specdir/$specfile && \
 touch completed
 if ! test -f completed; then
 	echo FAIL
