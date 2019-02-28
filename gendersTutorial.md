@@ -212,7 +212,7 @@ Only the ldms related lines are given here. The bootnode property is used by mor
     ## Run data collectors (ldmsd) on all nodes
     ser[1-1122],sergw[1-18],serrano-login[1-6],seradmin[1-6] ldmsd
     ## Run LDMS aggregators (ldmsaggd) on all admin nodes
-    seradmin[1-6] ldmsaggd=BOOTNODELIST:%n:CLIENTOFLIST
+    seradmin[1-6] ldmsaggd=BOOTNODELIST:CLIENTOFLIST
 
 
 The next file contains the ldmsd-related genders definitions. For administrative convenience they are not included in the default /etc/genders file on serrano. 
