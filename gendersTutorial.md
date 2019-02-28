@@ -22,6 +22,7 @@ Table of Contents
     1. [Procnetdev](#procnetdev)
     1. [Procstat](#procstat)
     1. [Meminfo](#meminfo)
+    1. [procinterrupts](#procinterrupts)
     1. [Splunk followers](#splunk-followers)
 1. [Milly example](#milly-example)
     1. [Csv archive](#csv-archive)
@@ -375,9 +376,13 @@ On a high speed cluster network with RDMA (InfiniBand or Cray HSNs), a producer 
 
 (Plugin_meminfo) The contents of meminfo /proc/meminfo depend on the compiled kernel and/or the memory features used by applications. The metrics are an initial group and optionally cma, dma, or huge page related values. The meminfo plugin collects and reports the metrics it first sees. Different nodes, not just different node classes may need schema/meminfo_{something} to prevent misidentification or omission of data.
 
+## Procinterrupts
+
+(Plugin_procinterrupts) This sampler requires no sampler-specific configuration, but on multicore multisocket hosts the metric set size can get very large for this plugin. Start by oversizing the memory reservation with attribute ldmsaggd_mem_res=1G, then consult the end of the log file on ldmsd exit to discover the actual reservation needed.
+
 ## Splunk followers
 
-Both store_csv and store_flatfile output can be read by a splunk input tool. In both cases, a shell script may also be used to filter the data into a format that makes the data smaller or more useful as needed. Serrano uses flatfile only for splunk.
+Both store_csv and store_flatfile output can be read by a splunk input tool. In both cases, a shell script may also be used to filter the data into a format that makes the data smaller or more useful as needed. Serrano uses flatfile only for splunk. Sites using systemd can manage the tailing scripts automatically by defining a service unit both WantedBy and BindTo ldmsd.service.
 
     # everything after the tail -F is an approximation; site details will vary.
     tail -F .../meminfo/Active | ...
