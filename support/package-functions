@@ -79,6 +79,9 @@ function pack_ck_yaml {
 
 # libevent2 check
 function pack_ck_event {
+	if test -n "$NOLIBEVENT"; then
+		return 0
+	fi
 	# special case for ovis libevent2 package
 	if test -f /usr/lib64/ovis-libevent2/include/event.h; then
 		return 0
