@@ -6,12 +6,14 @@ export NOLIBEVENT=1
 
 packing=v41.mayer.unstable
 ovis_branch=OVIS-4.2
+ovis_branch=bugfixes_42_from_master_2719
+ovis_branch=fixbuild42
 #ovis_branch=master
 sos_branch=master
 NetworkRequires=github.com
 #SOSREPO=/ascldap/users/baallan/mayer/ovis/repos/SOS
+OVISREPO=gitlab@gitlab.opengridcomputing.com:baallan/ovis.git
 OVISREPO=/home/baallan/mayer/ovis/repos/distribution/v41.mayer.unstable/myovis
-OVISREPO=gitlab@gitlab.opengridcomputing.com:ovis/ovis.git
 
 #OVISREPO=/ascldap/users/baallan/mayer/ovis/repos/ovis-42
 
@@ -52,6 +54,8 @@ IFACE_OPTS="
 --disable-python
 --enable-libgenders
 --enable-genderssystemd
+--enable-slurmtest
+--disable-mmdebug
 "
 STORE_OPTS="
 --disable-sos
@@ -76,6 +80,7 @@ SAMPLER_OPTS="
 --disable-generic_sampler
 --disable-switchx
 --disable-sensors
+--disable-procsensors
 --enable-dstat
 --enable-filesingle
 --enable-llnl-edac
@@ -88,7 +93,6 @@ SAMPLER_OPTS="
 --enable-procinterrupts
 --enable-procnetdev
 --enable-procnfs
---enable-procsensors
 --enable-procstat
 --enable-vmstat
 --enable-meminfo
