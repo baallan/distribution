@@ -141,7 +141,7 @@ else
 	git submodule init sos && git submodule update sos && tar cf ../$SOSTAR sos
 fi
 
-patches=""
+patches="ovis_self.patch"
 for i in $patches; do
 	patch -p1 < ../patches/$i
 	git commit -a -m "add $packing distribution patches"
