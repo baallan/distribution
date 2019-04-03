@@ -385,6 +385,8 @@ bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh 
 	$RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/manifest
 
 %changelog
+* Wed Apr 3 2019 Ben Allan <baallan@sandia.gov> 3.4.12-2.1
+Add patch to fix ovis_host_is_self in cluster environments.
 * Thu Oct 25 2018 Ben Allan <baallan@sandia.gov> 3.4.11-1
 Update to 3.4.11 and try lanl suggested require reduction.
 * Wed Sep 26 2018 Ben Allan <baallan@sandia.gov> 3.4.10-1
