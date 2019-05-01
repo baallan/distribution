@@ -2,7 +2,7 @@
 #
 #
 packing=toss3
-ovis_branch=v3.4.12
+ovis_branch=v3.4.13
 sos_branch=master
 NetworkRequires=github.com
 #SOSREPO=gitlab@gitlab.opengridcomputing.com:tom/SOS.git
@@ -141,7 +141,8 @@ else
 	git submodule init sos && git submodule update sos && tar cf ../$SOSTAR sos
 fi
 
-patches="ovis_self.patch"
+#patches="ovis_self.patch"
+patches=
 for i in $patches; do
 	patch -p1 < ../patches/$i
 	git commit -a -m "add $packing distribution patches"
