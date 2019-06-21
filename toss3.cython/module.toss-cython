@@ -1,0 +1,20 @@
+#%Module1.0
+# vi:set filetype=tcl:
+#
+
+# global control file
+if { [file exists $env(MODULESHOME)/etc/control] } {
+   source $env(MODULESHOME)/etc/control
+}
+
+# local variables
+set name	cython
+set version	0.28.5
+set prefix	/opt/$name/$version
+set bindir	$prefix/bin
+set libdir	$prefix/lib64
+
+prepend-path	PATH 		$bindir
+prepend-path	LD_LIBRARY_PATH $libdir
+prepend-path	PYTHONPATH $libdir/python2.7/site-packages
+

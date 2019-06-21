@@ -1,0 +1,18 @@
+#%Module1.0
+# vi:set filetype=tcl:
+#
+
+# global control file
+if { [file exists $env(MODULESHOME)/etc/control] } {
+   source $env(MODULESHOME)/etc/control
+}
+
+# local variables
+set name	numpy
+set version	1.14.6
+set prefix	/opt/$name/$version
+set libdir	$prefix/lib64
+
+prepend-path	PYTHONPATH $libdir/python2.7/site-packages
+prereq cython
+
