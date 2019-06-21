@@ -44,3 +44,10 @@ When working with test packages, pay particular attention to the variables at th
 
 Scalable configuration management of clusters is most easily done using the libgenders
 options to control the ldmsd systemd service. An example of this is given in [gendersTutorial.md](gendersTutorial.md).
+
+## Packaging for versions 4 of OVIS
+The optional object store sosdb uses python/numpy/cython for easy access to data arrays in python.
+The default RHEL 7 Numpy (1.7) and Cython (0.19) are incompatible with sosdb usage.
+While personal builds can be performed with any modern batteries-include python distribution instead of Redhat's,
+rpm builds require know rpms for cython and numpy, so these are provided in the toss3.numpy and toss3.cython directories.
+The numpy and cython rpm spec files and generated rpms for python 2.7 will also work in plain RHEL 7 environments.
