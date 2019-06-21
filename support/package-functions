@@ -10,7 +10,7 @@ function pack_get_ac_version {
 # e.g. y=$(pack_get_ac_name configure.ac )
 function pack_get_ac_name {
 	x=$(grep AC_INIT $1 | cut -d, -f 1 | sed -e 's/.*(//g' -e 's/[[:space:]]//g')
-	echo $x
+	echo $x | sed -e 's/^\[//' -e 's/]$//g'
 }
 
 # fail and warn if any file given is missing or not regular.
