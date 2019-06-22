@@ -27,6 +27,21 @@ function pack_checkfiles {
 	return $bad
 }
 
+# fail none of the files is found
+function pack_checkfiles_none {
+	local bad=1
+	for i in $*; do
+		if test -f $i; then
+			echo File $i found.
+			bad=0
+			break
+		else
+			echo "	No file $i"
+		fi
+	done
+	return $bad
+}
+
 # fail and warn if any dir given is missing or not dir.
 function pack_checkdirs {
 	local bad=0
@@ -36,6 +51,21 @@ function pack_checkdirs {
 			bad=1
 		else
 			: echo Directory $i found.
+		fi
+	done
+	return $bad
+}
+
+# fail and warn if none of the directories is found.
+function pack_checkdirs_none {
+	local bad=1
+	for i in $*; do
+		if test -d $i; then
+			bad=0
+			echo Directory $i found.
+			break
+		else
+			echo "	No directory $i"
 		fi
 	done
 	return $bad
@@ -159,15 +189,29 @@ function pack_ck_pydev {
 
 # python numeric check
 function pack_ck_numpy {
-	pack_checkdirs /usr/include/numpy
+	pack_checkdirs_none /opt/numpy /usr/include/numpy
 	x=$?
-	echo missing package numpy or equivalent
+	if test "$x" != "0"; then
+		echo missing package numpy or equivalent
+	fi
+	return $?
+}
+
+# sosdb check
+function pack_ck_sosdb {
+	# need to extract with value here from options and check there instead of /usr
+	pack_checkdirs_none /usr/include/sos
+	x=$?
+	if test "$x" != "0"; then
+		echo missing package sosdb
+		echo may need to firerpms.sos and install sosdb.
+	fi
 	return $?
 }
 
 # cython check
 function pack_ck_cython {
-	pack_checkfiles /usr/bin/cython
+	pack_checkfiles_none /opt/cython/0.28.5/bin/cython /usr/bin/cython
 	x=$?
 	if test "$x" != "0"; then
 		echo missing package Cython or equivalent
@@ -299,6 +343,38 @@ function pack_prechecks {
 			x=$?
 			bad=$(( $bad + $x))
 		fi
+		if echo "$*" | grep with-sos >/dev/null; then
+			echo Checking some for sosdb install
+			pack_ck_sosdb
+			x=$?
+			bad=$(( $bad + $x))
+		fi
+	fi
+	if test "$bad" = "0"; then
+		echo "Looks ok, but configure may still fail for advanced plugins."
+	fi
+	return $bad
+}
+
+# We do these to short circuit wasting make dist and configure time on
+# things that rpm Requires/BuildRequires will ultimately catch.
+function pack_prechecks_sos {
+	echo Making cheap checks for prerequisites based on configure options.
+	local bad=0
+	pack_ck_rpmbuild
+	x=$?
+	bad=$(( $bad + $x))
+	pack_ck_rpath
+	x=$?
+	bad=$(( $bad + $x))
+	if echo "$*" | grep enable-python >/dev/null; then
+		echo Checking some sos python ui dependencies
+		pack_ck_cython
+		x=$?
+		bad=$(( $bad + $x))
+		pack_ck_numpy
+		x=$?
+		bad=$(( $bad + $x))
 	fi
 	if test "$bad" = "0"; then
 		echo "Looks ok, but configure may still fail for advanced plugins."

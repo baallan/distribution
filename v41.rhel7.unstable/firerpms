@@ -2,13 +2,21 @@
 #
 #
 packing=v41.rhel7.unstable
-ovis_branch=gender_scripts_upport_v3bugfixes
-sos_branch=master
-NetworkRequires=gitlab.opengridcomputing.com
-SOSREPO=gitlab@gitlab.opengridcomputing.com:tom/SOS.git
-OVISREPO=gitlab@gitlab.opengridcomputing.com:baallan/ovis.git
+ovis_branch=OVIS-4.2.3
+sospkg= ; # if set empty, disable sos in ldms
+sospkg=sosdb-4.2.1
+NetworkRequires=github.com
+OVISREPO=git@github.com:ovis-hpc/ovis.git
 
 . ../support/package-functions
+
+if test -n "$sospkg"; then
+	USESOS="--enable-sos"
+	SOS_OPTS="--with-sos=/usr"
+else
+	USESOS="--disable-sos"
+	SOS_OPTS=""
+fi
 
 prefix=/usr
 PACK_OPTS="
@@ -42,16 +50,13 @@ IFACE_OPTS="
 --enable-libgenders
 --enable-genderssystemd
 "
-BALER_OPTS="
---disable-baler
-"
 STORE_OPTS="
---disable-sos
+$USESOS
 --enable-flatfile
 --enable-csv
 --enable-store
 --disable-rabbitv3
---enable-rabbitkw
+--disable-rabbitkw
 "
 SAMPLER_OPTS="
 --disable-cray_power_sampler
@@ -86,7 +91,7 @@ SAMPLER_OPTS="
 --enable-slurmtest
 --enable-filesingle
 "
-allconfig="$PACK_OPTS $SECURITY_OPTS $NETWORK_OPTS $IFACE_OPTS $STORE_OPTS $SAMPLER_OPTS $CRAY_LOCATIONS"
+allconfig="$PACK_OPTS $SECURITY_OPTS $NETWORK_OPTS $IFACE_OPTS $STORE_OPTS $SAMPLER_OPTS $CRAY_LOCATIONS $SOS_OPTS"
 
 if ! pack_prechecks "$allconfig"; then
 	echo "Check dependencies listed above, install needed packages, and try again"
@@ -103,7 +108,6 @@ else
 fi
 
 specdir=$dn
-SOSTAR=sos.tar
 
 /bin/rm -rf ovis
 if ! git clone $OVISREPO ovis; then
@@ -116,32 +120,15 @@ if ! git checkout $ovis_branch; then
 	echo cannot checkout ovis branch $ovis_branch.
 	exit 1
 fi
-if test -n "$SOSREPO"; then
-	(cd .. ; /bin/rm -rf sos ;
-	if ! git clone $SOSREPO sos; then
-		echo cannot checkout SOS.
-		exit 1
-	else
-		(cd sos; if ! git checkout $sos_branch; then
-			echo "cannot checkout sos branch $sos_branch";
-			exit 1
-		fi )
-		tar cf $SOSTAR sos
-	fi
-	/bin/rm -rf sos
-	if ! test -f ../$SOSTAR; then
-		echo archive $SOSTAR must be next to source tree.
-		exit 1
-	fi
-	)
-else
-	git submodule init sos && git submodule update sos && tar cf ../$SOSTAR sos
-fi
+cd ..
 
-if ! test -f ../$SOSTAR; then
-	echo failed to download sos
-	exit 1
-fi
+
+cd ovis
+patches="lib-sos-incdir ldms-sos-incdir lib-python-touch"
+for i in $patches; do
+	patch -p1 < ../patches/$i
+	git commit -a -m "add $packing distribution patches: $i"
+done
 VERSION=$(pack_get_ac_version configure.ac)
 PACKAGE=$(pack_get_ac_name configure.ac)
 # Find SHA of latest checkin someone tagged
@@ -157,8 +144,9 @@ OUTPUT_DIR=`pwd`/Tars
 mkdir -p $OUTPUT_DIR
 # populate outdir inputs
 git archive --prefix=${PACKAGE=}-${VERSION}/ $COMMIT_ID --format=tar --output=${OUTPUT_DIR}/$TARGET
+cd ..
+
 sleep 0.1
-cp ../$SOSTAR $OUTPUT_DIR
 
 cd $OUTPUT_DIR
 
@@ -166,8 +154,6 @@ cd $OUTPUT_DIR
 echo "Untarring archive"
 tar xf $TARGET && \
 (cd ${PACKAGE}-${VERSION} && \
-tar xf ../$SOSTAR && \
-mkdir -p gpcd-support/m4 && \
 ./autogen.sh)
 if ! test -f ${PACKAGE}-${VERSION}/configure; then
 	echo "unable to generate ovis build files"
@@ -183,7 +169,7 @@ tar czf $TARGET.gz $TAR_OPTS ${PACKAGE}-${VERSION}
 echo "Relocating cruft"
 rm -rf old
 mkdir old
-mv -f ${PACKAGE}-${VERSION} $TARGET $SOSTARGET old
+mv -f ${PACKAGE}-${VERSION} $TARGET old
 specfile=tmp-ovis-${packing}.spec
 tar zxf $TARGET.gz && \
 cd ${PACKAGE}-${VERSION} && \
@@ -195,11 +181,7 @@ mkdir -p $packing/{BUILD,RPMS,SOURCES,SPECS,SRPMS} && \
 cp $TARGET.gz $packing/SOURCES && \
 ./config.status --file=-:$specdir/ovis.spec.in | \
 ./ldms/config.status --file=-:- | \
-./lib/config.status --file=$specdir/tmp-ovis-${packing}.spec:- && \
-if test -f sos/config.status; then
-	./sos/config.status --file=$specdir/ovis-${packing}.spec:$specdir/$specfile
-	specfile=ovis-${packing}.spec
-fi && \
+./lib/config.status --file=$specdir/$specfile:- && \
 rpmbuild -v --define "_topdir `pwd`/$packing" -ba $specdir/$specfile && \
 touch completed
 if ! test -f completed; then

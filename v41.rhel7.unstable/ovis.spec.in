@@ -34,11 +34,10 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Source: %{name}-%{version}.tar.gz
 Obsoletes: ldms-all
 Requires: rpm >= 4.8.0
-Requires: libevent >= 2.0.21
-Requires: libyaml libyaml-devel
+@ENABLE_SOS_TRUE@Requires: sosdb-python2, sosdb >= 4.2.1 
+@ENABLE_SOS_TRUE@BuildRequires: sosdb-devel
 @ENABLE_LDMS_PYTHON_TRUE@Requires: python2
 @ENABLE_SWIG_TRUE@Requires: python2-devel
-@ENABLE_SOS_TRUE@Requires: numpy
 @ENABLE_SSL_TRUE@Requires: openssl
 #@ENABLE_LIBGENDERS_TRUE@Requires: boost-regex boost-program-options
 @ENABLE_LIBGENDERS_TRUE@Requires: genders
@@ -47,13 +46,12 @@ BuildRequires: gettext-devel gcc glib2-devel
 @ENABLE_OVIS_AUTH_TRUE@BuildRequires: openssl-devel
 @ENABLE_SYSCLASSIB_TRUE@BuildRequires: libibverbs-devel
 @ENABLE_RDMA_TRUE@BuildRequires: librdmacm-devel
-BuildRequires: libevent libevent-devel
-BuildRequires: libyaml libyaml-devel
 @ENABLE_SWIG_TRUE@BuildRequires: python2 python2-devel
 @ENABLE_SWIG_TRUE@BuildRequires: swig
 @ENABLE_LIBGENDERS_TRUE@BuildRequires: boost-devel
 @ENABLE_LIBGENDERS_TRUE@BuildRequires: genders
-@ENABLE_KOKKOS_TRUE@BuildRequires: bison bison-devel flex flex-devel
+@ENABLE_KOKKOS_TRUE@@ENABLE_SOS_TRUE@Requires: python2-numpy
+@ENABLE_KOKKOS_TRUE@BuildRequires: bison bison-devel flex flex-devel, libevent >= 2.0.21
 @ENABLE_RABBITKW_TRUE@BuildRequires: librabbitmq librabbitmq-devel
 Url: http://ovis.ca.sandia.gov/
 
@@ -161,11 +159,6 @@ rm -rf $RPM_BUILD_ROOT
 %exclude %{_bindir}/ldmsd-pre-systemd
 %exclude %{_bindir}/ldmsd-pre-sysvinit
 
-@ENABLE_SOS_TRUE@%exclude %{_libdir}/libkey_*
-@ENABLE_SOS_TRUE@%exclude %{_libdir}/libidx_*
-@ENABLE_SOS_TRUE@%exclude %{_bindir}/sos_*
-@ENABLE_SOS_TRUE@%exclude %{_libdir}/libsos*
-@ENABLE_SOS_TRUE@%exclude %{_libdir}/libods*
 @ENABLE_SOS_TRUE@%exclude %{_libdir}/ovis-ldms/libstore_sos*
 @ENABLE_SOS_TRUE@%exclude %{_sbindir}/ldmsd_sos_init
 #end core
@@ -298,7 +291,6 @@ Doxygen files for ovis package.
 %exclude %{_datadir}/doc/%{name}-%{version}/relocation
 %exclude %{_datadir}/doc/ovis-ldms-%{version}/examples
 ## %{_datadir}/doc/ovis-lib-%{version}
-@ENABLE_SOS_TRUE@# %{_datadir}/doc/sos
 ## %%docdir %{_defaultdocdir}
 %docdir /usr/share/doc
 %post doc
@@ -309,7 +301,7 @@ bash %{_prefix}/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
 	%{_prefix}/share/doc/ovis-@VERSION@/relocation/manifest
 
 %package python2
-Summary: Python files for LDMS, SOS
+Summary: Python files for LDMS
 %description python2
 Python files for ovis
 # install needs
@@ -327,41 +319,16 @@ Requires: ovis >= 3.0.0 python
 # see https://fedoraproject.org/wiki/Packaging:Python_Old
 # and https://fedoraproject.org/wiki/Packaging:Python
 
-@ENABLE_SOS_TRUE@%package sosdb
-@ENABLE_SOS_TRUE@Summary: SOS database package
-@ENABLE_SOS_TRUE@Group: %{ldms_grp}
-@ENABLE_SOS_TRUE@# install requires
-@ENABLE_SOS_TRUE@Requires: ovis >= 3.0.0
-@ENABLE_SOS_TRUE@@ENABLE_PYTHON_TRUE@Requires: Cython
-@ENABLE_SOS_TRUE@@ENABLE_PYTHON_TRUE@@ENABLE_SOS_TRUE@Requires: numpy
-@ENABLE_SOS_TRUE@# build requires
-@ENABLE_SOS_TRUE@@ENABLE_SWIG_TRUE@BuildRequires: python python-devel
-@ENABLE_SOS_TRUE@@ENABLE_SWIG_TRUE@BuildRequires: swig
-@ENABLE_SOS_TRUE@%description sosdb
-@ENABLE_SOS_TRUE@This is a collection of SOS database utilities for LDMS.
-@ENABLE_SOS_TRUE@
-@ENABLE_SOS_TRUE@%files sosdb
-@ENABLE_SOS_TRUE@%defattr(-,root,root)
-@ENABLE_SOS_TRUE@%{_bindir}/sos_*
-@ENABLE_SOS_TRUE@%{_libdir}/libkey_*
-@ENABLE_SOS_TRUE@%{_libdir}/libsos*
-@ENABLE_SOS_TRUE@%{_libdir}/libods*
-@ENABLE_SOS_TRUE@%{_libdir}/libidx_*
-@ENABLE_SOS_TRUE@@ENABLE_PYTHON_TRUE@%{_prefix}/lib/python2.7/site-packages/sosdb
-@ENABLE_SOS_TRUE@#end sosdb
-
 @ENABLE_SOS_TRUE@%package ldms-sos
 @ENABLE_SOS_TRUE@Summary: LDMS sosdb plugins
-@ENABLE_SOS_TRUE@Requires: ovis-sosdb
+@ENABLE_SOS_TRUE@Requires: sosdb
 @ENABLE_SOS_TRUE@%description ldms-sos
 @ENABLE_SOS_TRUE@Libraries and utilities for SOS usage in LDMS
 @ENABLE_SOS_TRUE@%files ldms-sos
 @ENABLE_SOS_TRUE@%defattr(-,root,root)
 @ENABLE_SOS_TRUE@%{_sbindir}/ldmsd_sos_init
 @ENABLE_SOS_TRUE@%{_libdir}/ovis-ldms/libstore_sos*
-@ENABLE_SOS_TRUE@@ENABLE_PYTHON_TRUE@%{_prefix}/lib/python2.7/site-packages/sosdb
 @ENABLE_SOS_TRUE@#end ldms-sos
-
 
 %post
 bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
@@ -385,6 +352,8 @@ bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh 
 	$RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/manifest
 
 %changelog
+* Fri Jun 21 2019 Ben Allan <baallan@sandia.gov> 4.2.3-1
+Update to 4.2.3 with sosdb refactored to a dependency package.
 * Thu Oct 25 2018 Ben Allan <baallan@sandia.gov> 3.4.11-1
 Update to 3.4.11 and try lanl suggested require reduction.
 * Wed Sep 26 2018 Ben Allan <baallan@sandia.gov> 3.4.10-1
