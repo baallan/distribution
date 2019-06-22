@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 #
-packing=v41.rhel7.unstable
+packing=v42.toss3.unstable
 ovis_branch=OVIS-4.2.3
 sospkg= ; # if set empty, disable sos in ldms
 sospkg=sosdb-4.2.1
@@ -10,8 +10,10 @@ OVISREPO=git@github.com:ovis-hpc/ovis.git
 
 if test -n "$MODULEPATH"; then
 	module purge
+	if test -n "$sospkg"; then
 	module load python2-cython
 	module load python2-numpy
+	fi
 fi
 . ../support/package-functions
 

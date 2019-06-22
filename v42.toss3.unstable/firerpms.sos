@@ -1,11 +1,16 @@
 #!/bin/bash
 #
 #
-packing=v41.rhel7.unstable
+packing=v42.toss3.unstable
 sos_branch=ovis-4.2.3
 NetworkRequires=github.com
 SOSREPO=git@github.com:ovis-hpc/sos.git
 
+if test -n "$MODULEPATH"; then
+	module purge
+	module load python2-cython
+	module load python2-numpy
+fi
 . ../support/package-functions
 
 prefix=/usr

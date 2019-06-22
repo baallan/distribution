@@ -200,10 +200,12 @@ function pack_ck_numpy {
 # sosdb check
 function pack_ck_sosdb {
 	# need to extract with value here from options and check there instead of /usr
-	pack_checkdirs_none /usr/include/sos
+	pack_checkfiles /usr/include/sos/sos.h
 	x=$?
 	if test "$x" != "0"; then
 		echo missing package sosdb
+		echo may need to build python2-cython and python2-numpy
+		echo "(see toss3.cython and toss3.numpy directories)"
 		echo may need to firerpms.sos and install sosdb.
 	fi
 	return $?
@@ -211,7 +213,7 @@ function pack_ck_sosdb {
 
 # cython check
 function pack_ck_cython {
-	pack_checkfiles_none /opt/cython/0.28.5/bin/cython /usr/bin/cython
+	pack_checkfiles_none /opt/cython/0.28.5/bin/cython
 	x=$?
 	if test "$x" != "0"; then
 		echo missing package Cython or equivalent
