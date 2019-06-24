@@ -50,4 +50,7 @@ The optional object store sosdb uses python/numpy/cython for easy access to data
 The default RHEL 7 Numpy (1.7) and Cython (0.19) are incompatible with sosdb usage.
 While personal builds can be performed with any modern batteries-include python distribution instead of Redhat's,
 rpm builds require known rpms for cython and numpy, so these are provided in the toss3.numpy and toss3.cython directories.
-The numpy and cython rpm spec files and generated rpms for python 2.7 will also work in plain RHEL 7 environments.
+
+* The numpy and cython rpm spec files and generated rpms for python 2.7 will also work in plain RHEL 7 environments.
+* v41.rhel7.unstable: This builds the v4.x series for RHEL7. It currently uses v4.2.3 OVIS and corresponding v4.2.1 SOS for TOSS 3, both from github.
+* v42.toss3.unstable: This builds the 4.2.3 OVIS and 4.2.1 SOS for TOSS 3.4.
