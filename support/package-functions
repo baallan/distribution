@@ -200,7 +200,7 @@ function pack_ck_numpy {
 # sosdb check
 function pack_ck_sosdb {
 	# need to extract with value here from options and check there instead of /usr
-	pack_checkfiles /usr/include/sos/sos.h
+	pack_checkfiles_none /usr/include/sos/sos.h /opt/ovis/include/sos/sos.h
 	x=$?
 	if test "$x" != "0"; then
 		echo missing package sosdb
