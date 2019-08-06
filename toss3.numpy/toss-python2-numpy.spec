@@ -1,6 +1,6 @@
 Name:           numpy
 Version:        1.14.6
-Release:        1%{?dist}
+Release:        1.2%{?dist}
 Epoch:          1
 Summary:        A fast multidimensional array facility for Python
 
@@ -15,12 +15,13 @@ Summary:        A fast multidimensional array facility for Python
 %define numpy_root /opt/numpy/%{version}
 %define numpy_sitepackages %{numpy_root}/%{_lib}/python%{python2_version}/site-packages
 %define moddir  /opt/modules/modulefiles/numpy/%{version}/
+%define numpy_do_test 0
 
 # Everything is BSD except for class SafeEval in numpy/lib/utils.py which is Python
 License:        BSD and Python
 URL:            http://www.numpy.org/
 Source0:        https://github.com/%{name}/%{name}/releases/download/v%{version}/%{name}-%{version}.tar.gz
-Source1:	module.toss-numpy
+Source1:        module.toss-numpy
 
 BuildRequires:  python-devel python-setuptools python2-cython gcc
 BuildRequires:  lapack-devel
@@ -83,8 +84,11 @@ rm -rf %{buildroot}/%{numpy_sitepackages}/numpy/f2py
 rm -rf %{buildroot}/%{numpy_root}/bin
 
 %check
+%if %{numpy_do_test}
+  NTEST="numpy.test(verbose=2)"
+%endif
 pushd doc &> /dev/null
-PATH="%{buildroot}%{_bindir}:${PATH}" PYTHONPATH="%{buildroot}%{numpy_sitepackages}:%{cy_sitepackages}" %{__python2} -c "import pkg_resources, numpy ; numpy.test(verbose=2)" \
+PATH="%{buildroot}%{_bindir}:${PATH}" PYTHONPATH="%{buildroot}%{numpy_sitepackages}:%{cy_sitepackages}" %{__python2} -c "import pkg_resources, numpy ; $NTEST" \
 # don't remove this comment
 popd &> /dev/null
 

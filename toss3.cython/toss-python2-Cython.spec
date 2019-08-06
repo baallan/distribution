@@ -31,7 +31,7 @@ for writing Python extension modules.
 
 # % package
 Summary:        %{summary}
-Obsoletes:      python2-Cython < 0.28.5
+Obsoletes:      python2-cython < 0.28.5
 BuildRequires:  python-devel
 BuildRequires:  python-setuptools
 Prefix: /
@@ -48,7 +48,7 @@ mkdir -p %{buildroot}%{cy_root}
 
 %install
 mkdir -p %{buildroot}/%{moddir}
-%{__install} -m 755 %{_sourcedir}/module.toss-cython %{buildroot}/%{moddir}
+%{__install} -m 755 %{_sourcedir}/module.toss-cython %{buildroot}/%{moddir}/py%{python2_version}
 
 # % py2_install ; redefining the macro didn't work, so inline it here
 CFLAGS="%{optflags}" %{__python} %{py_setup} %{?py_setup_args} install --prefix=%{cy_root} -O1 --skip-build --root %{buildroot}
