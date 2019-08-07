@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 #
-packing=v42.toss3.unstable
+packing=v42.haaps
 sos_branch=ovis-4.2.3
 NetworkRequires=github.com
 SOSREPO=https://github.com/ovis-hpc/sos.git
