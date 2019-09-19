@@ -1,0 +1,905 @@
+# Set topdir to be builddir/rpm
+# note this is intentionally ignored by rpmbuild. must use
+# commandline syntax in makefile.am to get this effect.
+#% define _topdir %(echo $PWD)/toss
+# do not set unfascist build
+#%-define _unpackaged_files_terminate_build 0
+#%-define _missing_doc_files_terminate_build 0
+
+%define ldms_all System Environment/Libraries
+%define build_timestamp %(date +"%Y%m%d_%H%M")
+# % global __strip /bin/true
+%global _enable_debug_package 0
+%global debug_package %{nil}
+%global __os_install_post /usr/lib/rpm/brp-compress %{nil}
+%if 0%{?rhel} && 0%{?rhel} <= 6
+%{!?__python2: %global __python2 /opt/python-2.7/bin/python}
+%{!?python2_sitelib: %global python2_sitelib %(%{__python2} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")}
+%{!?python2_sitearch: %global python2_sitearch %(%{__python2} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib(1))")}
+%endif
+
+%if 0%{?suse_version} > 0
+%global _defaultdocdir %{_usr}/share/doc
+%endif
+
+# for rpm and cpio installation both allowed, we need this:
+%define relo_usr /@ovis_prefix@
+%define relo_etc /@ovis_sysconfdir@
+%define relo_var /@ovis_localstatedir@
+
+# Main package
+Summary: OVIS LDMS Commands and Libraries
+Name: ovis
+Version: @VERSION@
+Release: voltrino_%{build_timestamp}%{?dist}
+License: GPLv2 or BSD
+Group: %{ldms_all}
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+Source: %{name}-%{version}.tar.gz
+Requires: rpm >= 4.8.0
+@ENABLE_KOKKOS_TRUE@Requires: libevent >= 2.0.21
+@ENABLE_LDMS_PYTHON_TRUE@Requires: python-base python-devel
+@ENABLE_SOS_TRUE@@ENABLE_PYTHON_TRUE@Requires:Cython
+@ENABLE_SWIG_TRUE@Requires: python-devel
+@ENABLE_SOS_TRUE@Requires: numpy
+@ENABLE_SSL_TRUE@Requires: openssl
+@ENABLE_LIBGENDERS_TRUE@Requires: boost-regex boost-program-options
+@ENABLE_LIBGENDERS_TRUE@Requires: genders libgenders-devel libgendersplusplus
+BuildRequires: gettext-tools gcc glib2-devel
+@ENABLE_DOC_TRUE@BuildRequires: doxygen
+@ENABLE_OVIS_AUTH_TRUE@BuildRequires: openssl-devel
+@ENABLE_KOKKOS_TRUE@BuildRequires: libevent libevent-devel
+#BuildRequires: libyaml-0-2 libyaml-devel // baler
+@ENABLE_SWIG_TRUE@BuildRequires:python-base python-devel
+@ENABLE_SOS_TRUE@@ENABLE_PYTHON_TRUE@BuildRequires:Cython
+@ENABLE_SWIG_TRUE@BuildRequires:swig
+@ENABLE_LIBGENDERS_TRUE@BuildRequires: boost-devel
+@ENABLE_LIBGENDERS_TRUE@BuildRequires: genders libgenders-devel libgendersplusplus
+Url: http://ovis.ca.sandia.gov/
+
+# relocation prefix0 for file installs other than sysconfdir & localstatedir
+Prefix: /usr
+# relocation prefix1 for runtime localstatedir post install hooks
+Prefix: /var
+# relocation prefix2 for runtime sysconfdir post install hooks
+Prefix: /etc
+
+
+%description
+This package provides the OVIS commands and libraries, OVIS apis and transport libraries, and scalable object store libraries for TOSS 3.
+Configured for relocation with @ac_configure_args@
+--prefix=%{relo_usr}
+--exec-prefix=%{relo_usr}
+--bindir=%{relo_usr}/bin
+--sbindir=%{relo_usr}/sbin
+--sysconfdir=%{relo_etc}
+--datadir=%{relo_usr}/share
+--includedir=%{relo_usr}/include
+--libdir='${exec_prefix}/lib64'
+--libexecdir=%{relo_usr}/libexec
+--mandir=%{relo_usr}/share/man
+--infodir=%{relo_usr}/share/info
+--sharedstatedir=%{relo_var}/lib
+--localstatedir=%{relo_var}
+
+%dump
+
+%prep
+%setup -q
+
+%build
+echo bTMPPATH %{_tmppath}
+rm -rf $RPM_BUILD_ROOT
+echo bBUILDROOT $RPM_BUILD_ROOT
+export CFLAGS="@CFLAGS@ %{optflags} -O1 -g"
+./configure @ac_configure_args@ --localstatedir=%{relo_var} --prefix=%{relo_usr} --exec-prefix=%{relo_usr} --bindir=%{relo_usr}/bin --sbindir=%{relo_usr}/sbin --sysconfdir=%{relo_etc} --datadir=%{relo_usr}/share --includedir=%{relo_usr}/include --libdir='${exec_prefix}/lib64' --libexecdir=%{relo_usr}/libexec --mandir=%{relo_usr}/share/man --infodir=%{relo_usr}/share/info --sharedstatedir=%{relo_var}/lib
+
+ncores=`grep -c ^processor /proc/cpuinfo`
+make V=1 -j $ncores
+
+%install
+echo TMPPATH %{_tmppath}
+echo BUILDROOT $RPM_BUILD_ROOT
+make DESTDIR=${RPM_BUILD_ROOT} V=1 install
+ls %{buildroot}
+mkdir -p %{buildroot}%{_prefix}
+(cd %{buildroot}%{_prefix}/..; rmdir `basename %{buildroot}%{_prefix}`)
+mv %{buildroot}%{relo_usr} %{buildroot}%{_prefix}
+if test -d  %{buildroot}%{relo_etc}; then
+	mv %{buildroot}%{relo_etc} %{buildroot}%{_sysconfdir}
+fi
+
+# sbin wrapper rework
+for b in $RPM_BUILD_ROOT%{_sbindir}/ldms*; do
+	bn=`basename $b`
+	echo wrapping $bn
+	dn=`dirname $b`
+	mv $b $RPM_BUILD_ROOT%{_libdir}/ovis-ldms/$bn
+	(cd $dn; ln -s .ldms-wrapper $bn)
+done
+# grunge for no-devel restriction in some environments
+@ENABLE_RABBITKW_TRUE@if test -f $RPM_BUILD_ROOT%{_libdir}/ovis-ldms/libstore_rabbitkw.so -o -f $RPM_BUILD_ROOT%{_libdir}/ovis-ldms/libstore_rabbitv3.so; then
+@ENABLE_RABBITKW_TRUE@	(cd $RPM_BUILD_ROOT%{_libdir}/ovis-ldms/; ln -s /usr/lib64/librabbitmq.so.4 librabbitmq.so; ln -s /usr/lib64/librabbitmq.so.4 .; ln -s /usr/lib64/librabbitmq.so.4.2.0 . )
+@ENABLE_RABBITKW_TRUE@fi
+# remove unpackaged files from the buildroot
+rm -f $RPM_BUILD_ROOT%{_libdir}/*.la
+rm -f $RPM_BUILD_ROOT%{_libdir}/ovis-ldms/lib*.la
+rm $RPM_BUILD_ROOT%{_bindir}/test_*
+rm $RPM_BUILD_ROOT%{_bindir}/ldms_ban.sh
+find $RPM_BUILD_ROOT%{_docdir}/ovis-ldms-%{version} -maxdepth 1 -type f -exec mv {} $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}/ \;
+@ENABLE_TOSS_SYSTEMD_TRUE@mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/init.d
+@ENABLE_TOSS_SYSTEMD_TRUE@mkdir -p $RPM_BUILD_ROOT%{_prefix}/lib/systemd/system
+@ENABLE_TOSS_SYSTEMD_TRUE@cp $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}/sample_init_scripts/genders/sysv/etc/init.d/ldms* $RPM_BUILD_ROOT%{_sysconfdir}/init.d/
+@ENABLE_TOSS_SYSTEMD_TRUE@cp -ar $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}/sample_init_scripts/genders/systemd/etc/* $RPM_BUILD_ROOT%{_sysconfdir}
+@ENABLE_TOSS_SYSTEMD_TRUE@cp -r $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}/sample_init_scripts/genders/systemd/services/ldms*.service $RPM_BUILD_ROOT%{_prefix}/lib/systemd/system
+mkdir -p -m 755 $RPM_BUILD_ROOT%{_localstatedir}/log/ldmsd
+mkdir -p -m 755 $RPM_BUILD_ROOT%{_localstatedir}/run/ldmsd
+mkdir -p -m 755 $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/ldms.d/ClusterGenders
+mkdir -p -m 755 $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/ldms.d/ClusterSecrets
+mkdir -p -m 755 $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/ldms.d/plugins-conf
+
+echo making manifest
+./util/relocation/bld_manifest.sh %{buildroot}%{_prefix} %{buildroot}%{_sysconfdir} %{buildroot}%{_localstatedir} > %{buildroot}%{_prefix}/share/doc/ovis-@VERSION@/relocation/manifest
+
+%clean
+#rm -rf $RPM_BUILD_ROOT
+
+# package lib-coll
+@ENABLE_COLL_TRUE@%package lib-coll
+@ENABLE_COLL_TRUE@Summary: LDMS base libraries package
+@ENABLE_COLL_TRUE@Group: %{ldms_grp}
+@ENABLE_COLL_TRUE@Requires: ovis = @VERSION@
+@ENABLE_COLL_TRUE@%description lib-coll
+@ENABLE_COLL_TRUE@A library of API for managing collections of objects that includes
+@ENABLE_COLL_TRUE@the following:
+@ENABLE_COLL_TRUE@- Red-Black Tree
+@ENABLE_COLL_TRUE@- String Hash Table
+
+%files
+%defattr(-,root,root)
+%{_libdir}/libcoll*
+%{_libdir}/libovis_third*
+
+# coll-devel
+@ENABLE_COLL_TRUE@%package lib-coll-devel
+@ENABLE_COLL_TRUE@Summary: Development files for Ovis lib-coll library
+@ENABLE_COLL_TRUE@Obsoletes: ovis-lib-coll-devel < %{version}
+@ENABLE_COLL_TRUE@Group: Development/Libraries
+@ENABLE_COLL_TRUE@%description coll-devel
+@ENABLE_COLL_TRUE@Development files for ovis-lib-coll library.
+@ENABLE_COLL_TRUE@%files lib-coll-devel
+@ENABLE_COLL_TRUE@%defattr(-,root,root)
+@ENABLE_COLL_TRUE@%{_includedir}/coll/
+
+# mmalloc
+@ENABLE_MMALLOC_TRUE@%package lib-mmalloc
+@ENABLE_MMALLOC_TRUE@Summary: OVIS memory allocation library
+@ENABLE_MMALLOC_TRUE@Group: Development/Libraries
+@ENABLE_MMALLOC_TRUE@Obsoletes: ovis-lib-mmalloc < %{version}
+@ENABLE_MMALLOC_TRUE@%description lib-mmalloc
+@ENABLE_MMALLOC_TRUE@OVIS memory allocation library
+@ENABLE_MMALLOC_TRUE@%files lib-mmalloc
+@ENABLE_MMALLOC_TRUE@%defattr(-,root,root)
+@ENABLE_MMALLOC_TRUE@%{_libdir}/libmmalloc*
+
+# auth
+@ENABLE_OVIS_AUTH@%package lib-auth
+@ENABLE_OVIS_AUTH@Summary: OVIS authentication library
+@ENABLE_OVIS_AUTH@Obsoletes: ovis-lib-auth < %{version}
+@ENABLE_OVIS_AUTH@Group: Development/Libraries
+@ENABLE_OVIS_AUTH@%description lib-auth
+@ENABLE_OVIS_AUTH@OVIS authentication library
+@ENABLE_OVIS_AUTH@%files lib-auth
+@ENABLE_OVIS_AUTH@%defattr(-,root,root)
+@ENABLE_OVIS_AUTH@%{_libdir}/libovis_auth*
+@ENABLE_OVIS_AUTH@%{_libdir}/ovis-lib/ovis-auth.sh
+
+# auth-devel
+@ENABLE_OVIS_AUTH@%package lib-auth-devel
+@ENABLE_OVIS_AUTH@Obsoletes: ovis-lib-auth-devel < %{version}
+@ENABLE_OVIS_AUTH@Summary: Development files for ovis lib-auth library
+@ENABLE_OVIS_AUTH@Group: Development/Libraries
+@ENABLE_OVIS_AUTH@%description lib-auth-devel
+@ENABLE_OVIS_AUTH@Development files for ovis-lib-auth library
+@ENABLE_OVIS_AUTH@%files lib-auth-devel
+@ENABLE_OVIS_AUTH@%defattr(-,root,root)
+@ENABLE_OVIS_AUTH@%{_includedir}/ovis_auth/
+
+# ctrl
+@ENABLE_OVIS_CTRL_TRUE@%package lib-ctrl
+@ENABLE_OVIS_CTRL_TRUE@Requires: ovis-lib-util >= %{version}
+@ENABLE_OVIS_CTRL_TRUE@Summary: OVIS command line control library
+@ENABLE_OVIS_CTRL_TRUE@Group: Development/Libraries
+@ENABLE_OVIS_CTRL_TRUE@Obsoletes: ovis-lib-ctrl < %{version}
+@ENABLE_OVIS_CTRL_TRUE@%description lib-ctrl
+@ENABLE_OVIS_CTRL_TRUE@OVIS command line control utility library
+@ENABLE_OVIS_CTRL_TRUE@%files lib-ctrl
+@ENABLE_OVIS_CTRL_TRUE@%defattr(-,root,root)
+@ENABLE_OVIS_CTRL_TRUE@%{_libdir}/libovis_ctrl*
+
+# ctrl-devel
+@ENABLE_OVIS_CTRL_TRUE@%package lib-ctrl-devel
+@ENABLE_OVIS_CTRL_TRUE@Summary: Development files for ovis-lib-ctrl library
+@ENABLE_OVIS_CTRL_TRUE@Group: Development/Libraries
+@ENABLE_OVIS_CTRL_TRUE@Obsoletes: ovis-lib-ctrl-devel < %{version}
+@ENABLE_OVIS_CTRL_TRUE@%description lib-ctrl-devel
+@ENABLE_OVIS_CTRL_TRUE@Development files for ovis-lib-ctrl library
+@ENABLE_OVIS_CTRL_TRUE@%files lib-ctrl-devel
+@ENABLE_OVIS_CTRL_TRUE@%defattr(-,root,root)
+@ENABLE_OVIS_CTRL_TRUE@%{_includedir}/ovis_ctrl/
+
+# event
+@ENABLE_OVIS_EVENT_TRUE@%package lib-event
+@ENABLE_OVIS_EVENT_TRUE@Summary: OVIS event library
+@ENABLE_OVIS_EVENT_TRUE@Group: Development/Libraries
+@ENABLE_OVIS_EVENT_TRUE@Obsoletes: ovis-lib-event < %{version}
+@ENABLE_OVIS_EVENT_TRUE@%description lib-event
+@ENABLE_OVIS_EVENT_TRUE@OVIS event library (nothing to do with libevent.org)
+@ENABLE_OVIS_EVENT_TRUE@%files lib-event
+@ENABLE_OVIS_EVENT_TRUE@%defattr(-,root,root)
+@ENABLE_OVIS_EVENT_TRUE@%{_libdir}/libovis_event*
+
+# event-devel
+@ENABLE_OVIS_EVENT_TRUE@%package lib-event-devel
+@ENABLE_OVIS_EVENT_TRUE@Summary: Development files for ovis-lib-event library
+@ENABLE_OVIS_EVENT_TRUE@Group: Development/Libraries
+@ENABLE_OVIS_EVENT_TRUE@Obsoletes: ovis-lib-event-devel < %{version}
+@ENABLE_OVIS_EVENT_TRUE@%description lib-event-devel
+@ENABLE_OVIS_EVENT_TRUE@Development files for ovis-lib-event library
+@ENABLE_OVIS_EVENT_TRUE@%files lib-event-devel
+@ENABLE_OVIS_EVENT_TRUE@%defattr(-,root,root)
+@ENABLE_OVIS_EVENT_TRUE@%{_includedir}/ovis_event/
+
+# util
+@ENABLE_OVIS_UTIL_TRUE@%package lib-util
+@ENABLE_OVIS_UTIL_TRUE@Summary: OVIS utility library
+@ENABLE_OVIS_UTIL_TRUE@Group: Development/Libraries
+@ENABLE_OVIS_UTIL_TRUE@Obsoletes: ovis-lib-util < %{version}
+@ENABLE_OVIS_UTIL_TRUE@%description lib-util
+@ENABLE_OVIS_UTIL_TRUE@OVIS utility library
+@ENABLE_OVIS_UTIL_TRUE@%files lib-util
+@ENABLE_OVIS_UTIL_TRUE@%defattr(-,root,root)
+@ENABLE_OVIS_UTIL_TRUE@%{_libdir}/libovis_util*
+@ENABLE_OVIS_UTIL_TRUE@%{_libdir}/libovis_util.so.0
+@ENABLE_OVIS_UTIL_TRUE@%{_libdir}/libjson_parser*
+
+# util-devel
+@ENABLE_OVIS_UTIL_TRUE@%package lib-util-devel
+@ENABLE_OVIS_UTIL_TRUE@Summary: Development files for ovis-lib-util library
+@ENABLE_OVIS_UTIL_TRUE@Group: Development/Libraries
+@ENABLE_OVIS_UTIL_TRUE@Version: %{version}
+@ENABLE_OVIS_UTIL_TRUE@Obsoletes: ovis-lib-util-devel < %{version}
+@ENABLE_OVIS_UTIL_TRUE@%description lib-util-devel
+@ENABLE_OVIS_UTIL_TRUE@Development files for ovis-lib-util library
+@ENABLE_OVIS_UTIL_TRUE@%files lib-util-devel
+@ENABLE_OVIS_UTIL_TRUE@%defattr(-,root,root)
+@ENABLE_OVIS_UTIL_TRUE@%{_includedir}/ovis_util/
+@ENABLE_OVIS_UTIL_TRUE@%{_includedir}/json_parser/json.h
+
+# zap
+@ENABLE_ZAP_TRUE@%package lib-zap
+@ENABLE_ZAP_TRUE@Summary: Transport Independent User-mode RDMA API
+@ENABLE_ZAP_TRUE@Group: Development/Libraries
+@ENABLE_ZAP_TRUE@Version: %{version}
+@ENABLE_ZAP_TRUE@Obsoletes: ovis-lib-zap < %{version}
+@ENABLE_ZAP_TRUE@%description lib-zap
+@ENABLE_ZAP_TRUE@Zap is a Transport Independent User-mode RDMA API
+@ENABLE_ZAP_TRUE@%files lib-zap
+@ENABLE_ZAP_TRUE@%defattr(-,root,root)
+@ENABLE_ZAP_TRUE@%{_libdir}/libzap.*
+@ENABLE_ZAP_TRUE@# %{_sbindir}/zap_test*
+
+# zap-devel
+@ENABLE_ZAP_TRUE@%package lib-zap-devel
+@ENABLE_ZAP_TRUE@Summary: Development files for ovis-lib-zap library
+@ENABLE_ZAP_TRUE@Group: Development/Libraries
+@ENABLE_ZAP_TRUE@Version: %{version}
+@ENABLE_ZAP_TRUE@Obsoletes: ovis-lib-zap-devel < %{version}
+@ENABLE_ZAP_TRUE@Requires: ovis-lib-zap >= %{version}
+@ENABLE_ZAP_TRUE@%description lib-zap-devel
+@ENABLE_ZAP_TRUE@Development files for ovis-lib-zap library
+@ENABLE_ZAP_TRUE@%files lib-zap-devel
+@ENABLE_ZAP_TRUE@%defattr(-,root,root)
+@ENABLE_ZAP_TRUE@%{_includedir}/zap/
+
+# zap-sock
+@ENABLE_ZAP_TRUE@%package lib-zap-sock
+@ENABLE_ZAP_TRUE@Summary: Socket transport implementation for Zap
+@ENABLE_ZAP_TRUE@Group: Development/Libraries
+@ENABLE_ZAP_TRUE@Version: %{version}
+@ENABLE_ZAP_TRUE@Obsoletes: ovis-lib-zap-sock < %{version}
+@ENABLE_ZAP_TRUE@Requires: ovis-lib-zap >= %{version}, ovis-lib-coll >= %{version}, libevent >= 2.0.21
+@ENABLE_ZAP_TRUE@%description lib-zap-sock
+@ENABLE_ZAP_TRUE@Socket transport implementation for Zap
+@ENABLE_ZAP_TRUE@%files lib-zap-sock
+@ENABLE_ZAP_TRUE@%defattr(-,root,root)
+@ENABLE_ZAP_TRUE@%{_libdir}/ovis-lib/libzap_sock.*
+
+# zap-rdma
+@ENABLE_RDMA_TRUE@%package lib-zap-rdma
+@ENABLE_RDMA_TRUE@Summary: RDMA transport implementation for Zap
+@ENABLE_RDMA_TRUE@Group: Development/Libraries
+@ENABLE_RDMA_TRUE@Version: %{version}
+@ENABLE_RDMA_TRUE@Obsoletes: ovis-lib-zap-rdma < %{version}
+@ENABLE_RDMA_TRUE@Requires: ovis-lib-zap >= %{version}, ovis-lib-coll >= %{version}, libevent >= 2.0.21
+@ENABLE_RDMA_TRUE@%description lib-zap-rdma
+@ENABLE_RDMA_TRUE@RDMA transport implementation for Zap
+@ENABLE_RDMA_TRUE@%files lib-zap-rdma
+@ENABLE_RDMA_TRUE@%defattr(-,root,root)
+@ENABLE_RDMA_TRUE@%{_libdir}/ovis-lib/libzap_rdma.*
+
+# zap-ugni
+@ENABLE_UGNI_TRUE@%package lib-zap-ugni
+@ENABLE_UGNI_TRUE@Summary: uGNI transport implementation for Zap
+@ENABLE_UGNI_TRUE@Group: Development/Libraries
+@ENABLE_UGNI_TRUE@Version: %{version}
+@ENABLE_UGNI_TRUE@Requires: ovis-lib-zap >= %{version}, ovis-lib-coll
+@ENABLE_UGNI_TRUE@%description lib-zap-ugni
+@ENABLE_UGNI_TRUE@uGNI transport implementation for Zap
+@ENABLE_UGNI_TRUE@%files lib-zap-ugni
+@ENABLE_UGNI_TRUE@%defattr(-,root,root)
+@ENABLE_UGNI_TRUE@%{_libdir}/ovis-lib/libzap_ugni.*
+
+# python
+%package lib-python
+Summary: Python API for ovis_lib services
+Group: Development/Libraries
+Version: %{version}
+Obsoletes: ovis-lib-python < %{version}
+%description lib-python
+Python API for ovis_lib services
+%files lib-python
+%defattr(-,root,root)
+%{_prefix}/lib*/python*/site-packages/ovis_lib/*
+
+%package lib-misc
+Summary: Miscellaneous files in the ovis-lib project.
+Group: Development/Libraries
+Version: %{version}
+Obsoletes: ovis-lib-misc < %{version}
+%description lib-misc
+Miscellaneous files in the ovis-lib project.
+%files lib-misc
+%{_libdir}/ovis-lib-configvars.sh
+%{_includedir}/ovis-lib-config.h
+%{_bindir}/lib-pedigree
+%{_sysconfdir}/
+%{_prefix}/share/doc/ovis-lib-*/COPYING
+%{_prefix}/share/doc/ovis-lib-*/README
+%{_prefix}/share/doc/ovis-lib-*/ChangeLog
+%exclude %{_includedir}/ovis-test/
+
+%package ldms
+Obsoletes: ovis-ldms < %{version}
+Summary: LDMS - Lighweight Distributed Metric Service
+
+%files
+%defattr(-,root,root)
+%{_bindir}/*
+%{_sbindir}/*
+%{_sbindir}/.ldms*
+# ??????
+#%{_sbindir}/.ldms-wrapper ??????
+#
+%{_libdir}/libldms.*
+%{_libdir}/libsampler_base.*
+%{_libdir}/libldms_auth_*
+### fixme???
+%{_prefix}/lib*/python*
+%{_datadir}/doc/%{name}-%{version}/relocation
+%{_docdir}/%{name}-%{version}/AUTHORS
+%{_docdir}/%{name}-%{version}/COPYING
+%{_docdir}/%{name}-%{version}/ChangeLog
+%{_docdir}/%{name}-%{version}/README
+
+# %exclude %{_bindir}/ldms-py*sh
+# %exclude %{_bindir}/ldms-meminfo.sh
+# %exclude %{_bindir}/ldms-static-test.sh
+# %exclude %{_bindir}/ldmsd-wrapper.sh
+# %exclude %{_bindir}/ldmsd-pre-systemd
+# %exclude %{_bindir}/ldmsd-pre-sysvinit
+
+%package ldms-devel
+Summary: Development files for LDMS
+Group: Development/Libraries
+%description ldms-devel
+Development files for LDMS
+%files ldms-devel
+%defattr(-,root,root)
+%{_includedir}
+
+# ovis-ldms-doc package
+%package ldms-doc
+Summary: LDMS Documentation
+Group: Documentation
+%description ldms-doc
+Documentation for LDMS subsystem
+%files ldms-doc
+%defattr(-,root,root)
+%{_datadir}/doc
+%{_datadir}/man
+
+# ovis-ldms-sampler-generic
+@ENABLE_GENERIC_SAMPLER_TRUE@%package ldms-sampler-generic
+@ENABLE_GENERIC_SAMPLER_TRUE@Summary: Generic LDMSD Sampler Plugin
+@ENABLE_GENERIC_SAMPLER_TRUE@Group: Applications/System
+@ENABLE_GENERIC_SAMPLER_TRUE@Version: %{version}
+@ENABLE_GENERIC_SAMPLER_TRUE@%description ldms-sampler-generic
+@ENABLE_GENERIC_SAMPLER_TRUE@%{summary}
+@ENABLE_GENERIC_SAMPLER_TRUE@%files ldms-sampler-generic
+@ENABLE_GENERIC_SAMPLER_TRUE@%defattr(-,root,root)
+@ENABLE_GENERIC_SAMPLER_TRUE@%{_libdir}/ovis-ldms/libgeneric_sampler.*
+
+# ovis-ldms-sampler-lustre2
+@ENABLE_LUSTRE_TRUE@%package ldms-sampler-lustre2
+@ENABLE_LUSTRE_TRUE@Summary: Lustre2 LDMSD Sampler Plugin
+@ENABLE_LUSTRE_TRUE@Group: Applications/System
+@ENABLE_LUSTRE_TRUE@Version: %{version}
+@ENABLE_LUSTRE_TRUE@%description ldms-sampler-lustre2
+@ENABLE_LUSTRE_TRUE@%{summary}
+@ENABLE_LUSTRE_TRUE@%files ldms-sampler-lustre2
+@ENABLE_LUSTRE_TRUE@%defattr(-,root,root)
+@ENABLE_LUSTRE_TRUE@%{_libdir}/ovis-ldms/liblustre2_*
+@ENABLE_LUSTRE_TRUE@%{_libdir}/ovis-ldms/liblustre_*
+
+# ovis-ldms-sampler-jobinfo
+@ENABLE_JOBINFO_TRUE@%package ldms-sampler-jobinfo
+@ENABLE_JOBINFO_TRUE@Summary: Jobinfo LDMSD Sampler Plugin
+@ENABLE_JOBINFO_TRUE@Group: Applications/System
+@ENABLE_JOBINFO_TRUE@Version: %{version}
+@ENABLE_JOBINFO_TRUE@%description ldms-sampler-jobinfo
+@ENABLE_JOBINFO_TRUE@%{summary}
+@ENABLE_JOBINFO_TRUE@%files ldms-sampler-jobinfo
+@ENABLE_JOBINFO_TRUE@%defattr(-,root,root)
+@ENABLE_JOBINFO_TRUE@%{_libdir}/ovis-ldms/libjobinfo.*
+@ENABLE_JOBINFO_TRUE@%{_libdir}/ovis-ldms/libjobinfo_slurm.*
+
+# ovis-ldms-sampler-meminfo
+@ENABLE_MEMINFO_TRUE@%package ldms-sampler-meminfo
+@ENABLE_MEMINFO_TRUE@Summary: Meminfo LDMSD Sampler Plugin
+@ENABLE_MEMINFO_TRUE@Group: Applications/System
+@ENABLE_MEMINFO_TRUE@Version: %{version}
+@ENABLE_MEMINFO_TRUE@%description ldms-sampler-meminfo
+@ENABLE_MEMINFO_TRUE@%{summary}
+@ENABLE_MEMINFO_TRUE@%files ldms-sampler-meminfo
+@ENABLE_MEMINFO_TRUE@%defattr(-,root,root)
+@ENABLE_MEMINFO_TRUE@%{_libdir}/ovis-ldms/libmeminfo.*
+
+# ovis-ldms-sampler-procdiskstats
+@ENABLE_PROCDISKSTATS_TRUE@%package ldms-sampler-procdiskstats
+@ENABLE_PROCDISKSTATS_TRUE@Summary: Procdiskstats LDMSD Sampler Plugin
+@ENABLE_PROCDISKSTATS_TRUE@Group: Applications/System
+@ENABLE_PROCDISKSTATS_TRUE@Version: %{version}
+@ENABLE_PROCDISKSTATS_TRUE@%description ldms-sampler-procdiskstats
+@ENABLE_PROCDISKSTATS_TRUE@%{summary}
+@ENABLE_PROCDISKSTATS_TRUE@%files ldms-sampler-procdiskstats
+@ENABLE_PROCDISKSTATS_TRUE@%defattr(-,root,root)
+@ENABLE_PROCDISKSTATS_TRUE@%{_libdir}/ovis-ldms/libprocdiskstats.*
+
+# ovis-ldms-sampler-procinterrupts
+@ENABLE_PROCINTERRUPTS_TRUE@%package ldms-sampler-procinterrupts
+@ENABLE_PROCINTERRUPTS_TRUE@Summary: procinterrupts LDMSD Sampler Plugin
+@ENABLE_PROCINTERRUPTS_TRUE@Group: Applications/System
+@ENABLE_PROCINTERRUPTS_TRUE@Version: %{version}
+@ENABLE_PROCINTERRUPTS_TRUE@%description ldms-sampler-procinterrupts
+@ENABLE_PROCINTERRUPTS_TRUE@%{summary}
+@ENABLE_PROCINTERRUPTS_TRUE@%files ldms-sampler-procinterrupts
+@ENABLE_PROCINTERRUPTS_TRUE@%defattr(-,root,root)
+@ENABLE_PROCINTERRUPTS_TRUE@%{_libdir}/ovis-ldms/libprocinterrupts.*
+
+# ovis-ldms-sampler-procnetdev
+@ENABLE_PROCNETDEV_TRUE@%package ldms-sampler-procnetdev
+@ENABLE_PROCNETDEV_TRUE@Summary: procnetdev LDMSD Sampler Plugin
+@ENABLE_PROCNETDEV_TRUE@Group: Applications/System
+@ENABLE_PROCNETDEV_TRUE@Version: %{version}
+@ENABLE_PROCNETDEV_TRUE@%description ldms-sampler-procnetdev
+@ENABLE_PROCNETDEV_TRUE@%{summary}
+@ENABLE_PROCNETDEV_TRUE@%files ldms-sampler-procnetdev
+@ENABLE_PROCNETDEV_TRUE@%defattr(-,root,root)
+@ENABLE_PROCNETDEV_TRUE@%{_libdir}/ovis-ldms/libprocnetdev.*
+
+# ovis-ldms-sampler-procnfs
+@ENABLE_PROCNFS_TRUE@%package ldms-sampler-procnfs
+@ENABLE_PROCNFS_TRUE@Summary: procnfs LDMSD Sampler Plugin
+@ENABLE_PROCNFS_TRUE@Group: Applications/System
+@ENABLE_PROCNFS_TRUE@Version: %{version}
+@ENABLE_PROCNFS_TRUE@%description ldms-sampler-procnfs
+@ENABLE_PROCNFS_TRUE@%{summary}
+@ENABLE_PROCNFS_TRUE@%files ldms-sampler-procnfs
+@ENABLE_PROCNFS_TRUE@%defattr(-,root,root)
+@ENABLE_PROCNFS_TRUE@%{_libdir}/ovis-ldms/libprocnfs.*
+
+# ovis-ldms-sampler-procstat
+@ENABLE_PROCSTAT_TRUE@%package ldms-sampler-procstat
+@ENABLE_PROCSTAT_TRUE@Summary: procstat LDMSD Sampler Plugin
+@ENABLE_PROCSTAT_TRUE@Group: Applications/System
+@ENABLE_PROCSTAT_TRUE@Version: %{version}
+@ENABLE_PROCSTAT_TRUE@%description ldms-sampler-procstat
+@ENABLE_PROCSTAT_TRUE@%{summary}
+@ENABLE_PROCSTAT_TRUE@%files ldms-sampler-procstat
+@ENABLE_PROCSTAT_TRUE@%defattr(-,root,root)
+@ENABLE_PROCSTAT_TRUE@%{_libdir}/ovis-ldms/libprocstat.*
+
+# ovis-ldms-sampler-synthetic
+@ENABLE_SYNTHETIC_TRUE@%package ldms-sampler-synthetic
+@ENABLE_SYNTHETIC_TRUE@Summary: synthetic LDMSD Sampler Plugin
+@ENABLE_SYNTHETIC_TRUE@Group: Applications/System
+@ENABLE_SYNTHETIC_TRUE@Version: %{version}
+@ENABLE_SYNTHETIC_TRUE@%description ldms-sampler-synthetic
+@ENABLE_SYNTHETIC_TRUE@%{summary}
+@ENABLE_SYNTHETIC_TRUE@%files ldms-sampler-synthetic
+@ENABLE_SYNTHETIC_TRUE@%defattr(-,root,root)
+@ENABLE_SYNTHETIC_TRUE@%{_libdir}/ovis-ldms/libsynthetic.*
+
+# ovis-ldms-sampler-sysclassib
+@ENABLE_SYSCLASSIB_TRUE@%package ldms-sampler-sysclassib
+@ENABLE_SYSCLASSIB_TRUE@Summary: sysclassib LDMSD Sampler Plugin
+@ENABLE_SYSCLASSIB_TRUE@Group: Applications/System
+@ENABLE_SYSCLASSIB_TRUE@Version: %{version}
+@ENABLE_SYSCLASSIB_TRUE@%description ldms-sampler-sysclassib
+@ENABLE_SYSCLASSIB_TRUE@%{summary}
+@ENABLE_SYSCLASSIB_TRUE@%files ldms-sampler-sysclassib
+@ENABLE_SYSCLASSIB_TRUE@%defattr(-,root,root)
+@ENABLE_SYSCLASSIB_TRUE@%{_libdir}/ovis-ldms/libsysclassib.*
+
+# ovis-ldms-sampler-vmstat
+@ENABLE_VMSTAT_TRUE@%package ldms-sampler-vmstat
+@ENABLE_VMSTAT_TRUE@Summary: vmstat LDMSD Vmstat Sampler Plugin
+@ENABLE_VMSTAT_TRUE@Group: Applications/System
+@ENABLE_VMSTAT_TRUE@Version: %{version}
+@ENABLE_VMSTAT_TRUE@%description ldms-sampler-vmstat
+@ENABLE_VMSTAT_TRUE@%{summary}
+@ENABLE_VMSTAT_TRUE@%files ldms-sampler-vmstat
+@ENABLE_VMSTAT_TRUE@%defattr(-,root,root)
+@ENABLE_VMSTAT_TRUE@%{_libdir}/ovis-ldms/libvmstat.*
+
+# ovis-ldms-sampler-all
+%package ldms-sampler-all
+Summary: all LDMSD All Sampler Plugin
+Group: Applications/System
+Version: %{version}
+%description ldms-sampler-all
+%{summary}
+%files ldms-sampler-all
+%defattr(-,root,root)
+%{_libdir}/ovis-ldms/liball_example.*
+
+# ovis-ldms-sampler-edac
+@ENABLE_LLNL_EDAC_TRUE@%package ldms-sampler-edac
+@ENABLE_LLNL_EDAC_TRUE@Summary: edac LDMSD EDAC Sampler Plugin
+@ENABLE_LLNL_EDAC_TRUE@Group: Applications/System
+@ENABLE_LLNL_EDAC_TRUE@Version: %{version}
+@ENABLE_LLNL_EDAC_TRUE@%description ldms-sampler-edac
+@ENABLE_LLNL_EDAC_TRUE@%{summary}
+@ENABLE_LLNL_EDAC_TRUE@%files ldms-sampler-edac
+@ENABLE_LLNL_EDAC_TRUE@%defattr(-,root,root)
+@ENABLE_LLNL_EDAC_TRUE@%{_libdir}/ovis-ldms/libedac.*
+
+# ovis-ldms-sampler-lnet
+@ENABLE_LNET_STATS_TRUE@%package ldms-sampler-lnet
+@ENABLE_LNET_STATS_TRUE@Summary: lnet LDMSD LNET Sampler Plugin
+@ENABLE_LNET_STATS_TRUE@Group: Applications/System
+@ENABLE_LNET_STATS_TRUE@Version: %{version}
+@ENABLE_LNET_STATS_TRUE@%description ldms-sampler-lnet
+@ENABLE_LNET_STATS_TRUE@%{summary}
+@ENABLE_LNET_STATS_TRUE@%files ldms-sampler-lnet
+@ENABLE_LNET_STATS_TRUE@%defattr(-,root,root)
+@ENABLE_LNET_STATS_TRUE@%{_libdir}/ovis-ldms/liblnet_stats.*
+
+########################################################################
+# Cray Specific Samplers
+########################################################################
+
+# ovis-ldms-sampler-cray-dvs
+@ENABLE_CRAY_SYSTEM_SAMPLER_TRUE@%package ldms-sampler-cray-dvs
+@ENABLE_CRAY_SYSTEM_SAMPLER_TRUE@Summary: Cray DVS Sampler Plugin
+@ENABLE_CRAY_SYSTEM_SAMPLER_TRUE@Group: Applications/System
+@ENABLE_CRAY_SYSTEM_SAMPLER_TRUE@Version: %{version}
+@ENABLE_CRAY_SYSTEM_SAMPLER_TRUE@%description ldms-sampler-cray-dvs
+@ENABLE_CRAY_SYSTEM_SAMPLER_TRUE@%{summary}
+@ENABLE_CRAY_SYSTEM_SAMPLER_TRUE@%files ldms-sampler-cray-dvs
+@ENABLE_CRAY_SYSTEM_SAMPLER_TRUE@%defattr(-,root,root)
+@ENABLE_CRAY_SYSTEM_SAMPLER_TRUE@%{_libdir}/ovis-ldms/libcray_dvs_sampler.*
+
+# ovis-ldms-sampler-cray-aries
+@ENABLE_ARIES_MMR_TRUE@%package ldms-sampler-cray-aries
+@ENABLE_ARIES_MMR_TRUE@Summary: Cray Aries Sampler Plugins
+@ENABLE_ARIES_MMR_TRUE@Group: Applications/System
+@ENABLE_ARIES_MMR_TRUE@Version: %{version}
+@ENABLE_ARIES_MMR_TRUE@%description ldms-sampler-cray-aries
+@ENABLE_ARIES_MMR_TRUE@%{summary}
+@ENABLE_ARIES_MMR_TRUE@%files ldms-sampler-cray-aries
+@ENABLE_ARIES_MMR_TRUE@%defattr(-,root,root)
+@ENABLE_ARIES_LINKSTATUS_TRUE@%{_libdir}/ovis-ldms/libaries_linkstatus.*
+@ENABLE_ARIES_MMR_TRUE@%{_libdir}/ovis-ldms/libaries_mmr.*
+@ENABLE_ARIES_MMR_TRUE@%{_libdir}/ovis-ldms/libaries_nic_mmr.*
+@ENABLE_ARIES_MMR_TRUE@%{_libdir}/ovis-ldms/libaries_rtr_mmr.*
+@ENABLE_ARIES_MMR_TRUE@%{_libdir}/ovis-ldms/libcray_aries_r_sampler.*
+@ENABLE_ARIES_MMR_TRUE@%{_prefix}/etc/ldms/aries_mmr_set_configs
+
+# ovis-ldms-sampler-cray-power
+@ENABLE_CRAY_POWER_SAMPLER_TRUE@%package ldms-sampler-cray-power
+@ENABLE_CRAY_POWER_SAMPLER_TRUE@Summary: Cray Power Sampler Plugin
+@ENABLE_CRAY_POWER_SAMPLER_TRUE@Group: Applications/System
+@ENABLE_CRAY_POWER_SAMPLER_TRUE@Version: %{version}
+@ENABLE_CRAY_POWER_SAMPLER_TRUE@%description ldms-sampler-cray-power
+@ENABLE_CRAY_POWER_SAMPLER_TRUE@%{summary}
+@ENABLE_CRAY_POWER_SAMPLER_TRUE@%files ldms-sampler-cray-power
+@ENABLE_CRAY_POWER_SAMPLER_TRUE@%defattr(-,root,root)
+@ENABLE_CRAY_POWER_SAMPLER_TRUE@%{_libdir}/ovis-ldms/libcray_power_sampler.*
+@ENABLE_CRAY_POWER_SAMPLER_TRUE@%{_libdir}/ovis-ldms/libtsampler.*
+@ENABLE_CRAY_POWER_SAMPLER_TRUE@%{_libdir}/ovis-ldms/libtimer_base.*
+@ENABLE_CRAY_POWER_SAMPLER_TRUE@%{_libdir}/ovis-ldms/libhfclock.*
+
+# ovis-ldms-sampler-kgnilnd
+@ENABLE_KGNILND_TRUE@%package ldms-sampler-kgnilnd
+@ENABLE_KGNILND_TRUE@Summary: Cray KGNI LND LDMS Sampler Plugin
+@ENABLE_KGNILND_TRUE@Group: Applications/System
+@ENABLE_KGNILND_TRUE@Version: %{version}
+@ENABLE_KGNILND_TRUE@%description ldms-sampler-kgnilnd
+@ENABLE_KGNILND_TRUE@%{summary}
+@ENABLE_KGNILND_TRUE@%files ldms-sampler-kgnilnd
+@ENABLE_KGNILND_TRUE@%defattr(-,root,root)
+@ENABLE_KGNILND_TRUE@%{_libdir}/ovis-ldms/libkgnilnd.*
+
+#################
+# store plugins #
+#################
+
+# ovis-ldms-store-csv-common
+@ENABLE_STORE_TRUE@%package ldms-store-csv-common
+@ENABLE_STORE_TRUE@Summary: CSV LDMSD Store Plugin Common Library
+@ENABLE_STORE_TRUE@Group: Applications/System
+@ENABLE_STORE_TRUE@Version: %{version}
+@ENABLE_STORE_TRUE@%description ldms-store-csv-common
+@ENABLE_STORE_TRUE@%{summary}
+@ENABLE_STORE_TRUE@%files ldms-store-csv-common
+@ENABLE_STORE_TRUE@%defattr(-,root,root)
+@ENABLE_STORE_TRUE@%{_libdir}/libldms_store_csv_common.*
+
+# ovis-ldms-store-csv
+@ENABLE_CSV_TRUE@%package ldms-store-csv
+@ENABLE_CSV_TRUE@Summary: CSV LDMSD Store Plugin
+@ENABLE_CSV_TRUE@Group: Applications/System
+@ENABLE_CSV_TRUE@Requires: ovis-ldms-store-csv-common >= %{version}
+@ENABLE_CSV_TRUE@Version: %{version}
+@ENABLE_CSV_TRUE@%description ldms-store-csv
+@ENABLE_CSV_TRUE@%{summary}
+@ENABLE_CSV_TRUE@%files ldms-store-csv
+@ENABLE_CSV_TRUE@%defattr(-,root,root)
+@ENABLE_CSV_TRUE@%{_libdir}/ovis-ldms/libstore_csv.*
+
+# ovis-ldms-store-function-csv
+@ENABLE_CSV_TRUE@%package ldms-store-function-csv
+@ENABLE_CSV_TRUE@Summary: LDMSD Function CSV Store Plugin
+@ENABLE_CSV_TRUE@Group: Applications/System
+@ENABLE_CSV_TRUE@Version: %{version}
+@ENABLE_CSV_TRUE@Requires: ovis-ldms-store-csv-common >= %{version}
+@ENABLE_CSV_TRUE@%description ldms-store-function-csv
+@ENABLE_CSV_TRUE@%{summary}
+@ENABLE_CSV_TRUE@%files ldms-store-function-csv
+@ENABLE_CSV_TRUE@%defattr(-,root,root)
+@ENABLE_CSV_TRUE@%{_libdir}/ovis-ldms/libstore_function_csv.*
+
+@ENABLE_SOS_TRUE@# ovis-ldms-store-sos
+@ENABLE_SOS_TRUE@%package ldms-store-sos
+@ENABLE_SOS_TRUE@Summary: LDMSD SOS Store Plugin
+@ENABLE_SOS_TRUE@Group: Applications/System
+@ENABLE_SOS_TRUE@Requires: sosdb >= %{version}
+@ENABLE_SOS_TRUE@Version: %{version}
+@ENABLE_SOS_TRUE@%description ldms-store-sos
+@ENABLE_SOS_TRUE@%{summary}
+@ENABLE_SOS_TRUE@%files ldms-store-sos
+@ENABLE_SOS_TRUE@%defattr(-,root,root)
+@ENABLE_SOS_TRUE@%{_libdir}/ovis-ldms/libstore_sos.*
+
+# ovis-ldms-store-kokkos
+@ENABLE_KOKKOS_TRUE@%package ldms-store-kokkos
+@ENABLE_KOKKOS_TRUE@Summary: LDMSD Kokkos Store Plugin
+@ENABLE_KOKKOS_TRUE@Group: Applications/System
+@ENABLE_KOKKOS_TRUE@Version: %{version}
+@ENABLE_KOKKOS_TRUE@%description ldms-store-kokkos
+@ENABLE_KOKKOS_TRUE@%{summary}
+@ENABLE_KOKKOS_TRUE@%files ldms-store-kokkos
+@ENABLE_KOKKOS_TRUE@%defattr(-,root,root)
+@ENABLE_KOKKOS_TRUE@%{_libdir}/ovis-ldms/libkokkos_store.*
+
+
+%package ldms-test
+Summary: LDMS test package
+Group: %{ldms_grp}
+Requires: ovis = @VERSION@
+Obsoletes: ldms-all-test
+%description ldms-test
+This is a collection of test scripts for (LDMS).
+They also serve as examples, but are not usually of direct 
+interest on compute nodes in production clusters.
+
+%files ldms-test
+%defattr(-,root,root)
+%{_bindir}/ldms-py*sh
+%{_bindir}/ldms-meminfo.sh
+%{_bindir}/ldms-static-test.sh
+%{_datadir}/doc/ovis-ldms-%{version}/examples/static-test
+%{_datadir}/doc/ovis-ldms-%{version}/examples/slurm-test
+#end test
+
+# initscripts
+%package initscripts-base
+Summary: LDMS base initscripts for libgenders control of %{name}
+Group: %{ldms_grp}
+Requires: ovis = @VERSION@
+Obsoletes: ldms-all-initscripts
+%description initscripts-base
+This is the support file set for libgenders based booting of LDMS daemons.
+Users normally provide information via /etc/genders (or alternate file)
+to make these scripts operate. With a manually written daemon
+control file, use of libgenders can be bypassed.
+
+%files initscripts-base
+%defattr(-,root,root)
+@ENABLE_TOSS_SYSTEMD_TRUE@%{_sysconfdir}/sysconfig/*
+@ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/sysconfig/ldms.d/ldmsd.local.conf
+@ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/sysconfig/ldms.d/ldmsd.agg.conf
+@ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/sysconfig/ldms.d/ClusterSecrets/ldmsauth.conf
+@ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/sysconfig/ldms.d/ClusterGenders/genders.local
+@ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/sysconfig/ldms.d/ClusterGenders/genders.agg
+@ENABLE_TOSS_SYSTEMD_TRUE@%{_bindir}/ldmsd-wrapper.sh
+
+@ENABLE_TOSS_SYSTEMD_TRUE@%post initscripts-base
+#  bash $RELO_DIR/relocate-paths.sh $USR $ETC $VAR $RELO_DIR/manifest
+bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
+	$RPM_INSTALL_PREFIX0 \
+	$RPM_INSTALL_PREFIX2 \
+	$RPM_INSTALL_PREFIX1 \
+	$RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/manifest
+
+#end initscripts-base
+
+@ENABLE_TOSS_SYSTEMD_TRUE@%package initscripts-systemd
+@ENABLE_TOSS_SYSTEMD_TRUE@Summary: LDMS systemd scripts for libgenders control of %{name}
+@ENABLE_TOSS_SYSTEMD_TRUE@Group: %{ldms_grp}
+@ENABLE_TOSS_SYSTEMD_TRUE@Requires: ovis = @VERSION@ ovis-initscripts-base
+@ENABLE_TOSS_SYSTEMD_TRUE@%description initscripts-systemd
+@ENABLE_TOSS_SYSTEMD_TRUE@This is the libgenders based systemd scripts for LDMS daemons.
+@ENABLE_TOSS_SYSTEMD_TRUE@Users normally provide information via /etc/genders (or alternate file)
+@ENABLE_TOSS_SYSTEMD_TRUE@to make these scripts operate. They are required to fail out of the box.
+@ENABLE_TOSS_SYSTEMD_TRUE@
+@ENABLE_TOSS_SYSTEMD_TRUE@%files initscripts-systemd
+@ENABLE_TOSS_SYSTEMD_TRUE@%defattr(-,root,root)
+@ENABLE_TOSS_SYSTEMD_TRUE@%config %{_prefix}/lib/systemd/system/ldmsd*.service
+@ENABLE_TOSS_SYSTEMD_TRUE@%config %{_bindir}/ldmsd-pre-systemd
+@ENABLE_TOSS_SYSTEMD_TRUE@%post initscripts-systemd
+@ENABLE_TOSS_SYSTEMD_TRUE@bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
+@ENABLE_TOSS_SYSTEMD_TRUE@	$RPM_INSTALL_PREFIX0 \
+@ENABLE_TOSS_SYSTEMD_TRUE@	$RPM_INSTALL_PREFIX2 \
+@ENABLE_TOSS_SYSTEMD_TRUE@	$RPM_INSTALL_PREFIX1 \
+@ENABLE_TOSS_SYSTEMD_TRUE@	$RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/manifest
+@ENABLE_TOSS_SYSTEMD_TRUE@#end initscripts-systemd
+
+@ENABLE_TOSS_SYSTEMD_TRUE@# initscripts-sysv
+@ENABLE_TOSS_SYSTEMD_TRUE@%package initscripts-sysv
+@ENABLE_TOSS_SYSTEMD_TRUE@Summary: LDMS sysv init scripts for libgenders control of %{name}
+@ENABLE_TOSS_SYSTEMD_TRUE@Group: %{ldms_grp}
+@ENABLE_TOSS_SYSTEMD_TRUE@Requires: ovis = @VERSION@ ovis-initscripts-base
+@ENABLE_TOSS_SYSTEMD_TRUE@%description initscripts-sysv
+@ENABLE_TOSS_SYSTEMD_TRUE@This is the libgenders based sysv init scripts for LDMS daemons.
+@ENABLE_TOSS_SYSTEMD_TRUE@Users must provide information via /etc/genders (or alternate file)
+@ENABLE_TOSS_SYSTEMD_TRUE@to make these scripts operate. They are required to fail out of the box.
+
+@ENABLE_TOSS_SYSTEMD_TRUE@%files initscripts-sysv
+@ENABLE_TOSS_SYSTEMD_TRUE@%defattr(-,root,root)
+@ENABLE_TOSS_SYSTEMD_TRUE@%config %{_sysconfdir}/init.d/ldms*
+@ENABLE_TOSS_SYSTEMD_TRUE@%config %{_bindir}/ldmsd-pre-sysvinit
+@ENABLE_TOSS_SYSTEMD_TRUE@%post initscripts-sysv
+@ENABLE_TOSS_SYSTEMD_TRUE@bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
+@ENABLE_TOSS_SYSTEMD_TRUE@	$RPM_INSTALL_PREFIX0 \
+@ENABLE_TOSS_SYSTEMD_TRUE@	$RPM_INSTALL_PREFIX2 \
+@ENABLE_TOSS_SYSTEMD_TRUE@	$RPM_INSTALL_PREFIX1 \
+@ENABLE_TOSS_SYSTEMD_TRUE@	$RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/manifest
+@ENABLE_TOSS_SYSTEMD_TRUE@#end initscripts-sysv
+############## from ben-style below
+
+#@ENABLE_SOS_TRUE@%exclude %{_libdir}/ovis-ldms/libstore_sos*
+#@ENABLE_SOS_TRUE@%exclude %{_sbindir}/ldmsd_sos_init
+#end core
+
+# devel
+%package devel
+Summary: LDMS devel package
+Group: %{ldms_grp}
+Requires: ovis = @VERSION@
+Obsoletes: ldms-all-devel
+%description devel
+This is a development package of Lightweight Distributed Metric System (LDMS).
+Users who want to implement their own sampler or store must install this
+package.
+
+%files devel
+%defattr(-,root,root)
+%{_includedir}/*/*.h
+# no 3rd level w/out old jobid sampler enabled
+@ENABLE_JOBID@%{_includedir}/*/*/*.h
+%{_includedir}/ovis-lib-config.h
+%{_includedir}/ovis-ldms-config.h
+#end devel
+
+
+
+%package doc
+Summary: Documentation files for %{name}
+Group: %{ldms_all}
+Obsoletes: ldms-all-doc
+## Requires: %{name}-devel = %{version}-%{release}
+%description doc
+Doxygen files for ovis package.
+%files doc
+%defattr(-,root,root)
+%{_mandir}/*/*
+%{_datadir}/doc/%{name}-%{version}
+%exclude %{_datadir}/doc/%{name}-%{version}/relocation
+%exclude %{_datadir}/doc/ovis-ldms-%{version}/examples
+## %{_datadir}/doc/ovis-lib-%{version}
+## %%docdir %{_defaultdocdir}
+%docdir /usr/share/doc
+%post doc
+bash %{_prefix}/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
+	$RPM_INSTALL_PREFIX0 \
+	$RPM_INSTALL_PREFIX2 \
+	$RPM_INSTALL_PREFIX1 \
+	%{_prefix}/share/doc/ovis-@VERSION@/relocation/manifest
+
+%package python2
+Summary: Python files for LDMS
+%description python2
+Python files for ovis
+# install needs
+Requires: ovis >= 3.0.0 python
+# build needs
+@ENABLE_LDMS_PYTHON_TRUE@BuildRequires: python
+@ENABLE_SWIG_TRUE@BuildRequires: python python-devel swig
+%files python2
+%defattr(-,root,root)
+@ENABLE_SWIG_TRUE@%{_prefix}/lib/python2.7/site-packages/ovis_lib
+@ENABLE_SWIG_TRUE@%{_prefix}/lib/python2.7/site-packages/ovis_ldms
+@ENABLE_LDMS_PYTHON_TRUE@%{_prefix}/lib/python2.7/site-packages/ldmsd
+#%%{python2_sitelib}/*
+#end python2
+# see https://fedoraproject.org/wiki/Packaging:Python_Old
+# and https://fedoraproject.org/wiki/Packaging:Python
+
+@ENABLE_SOS_TRUE@%package ldms-sos
+@ENABLE_SOS_TRUE@Summary: LDMS sosdb plugins
+@ENABLE_SOS_TRUE@Requires: sosdb
+@ENABLE_SOS_TRUE@%description ldms-sos
+@ENABLE_SOS_TRUE@Libraries and utilities for SOS usage in LDMS
+@ENABLE_SOS_TRUE@%files ldms-sos
+@ENABLE_SOS_TRUE@%defattr(-,root,root)
+@ENABLE_SOS_TRUE@%{_sbindir}/ldmsd_sos_init
+@ENABLE_SOS_TRUE@%{_libdir}/ovis-ldms/libstore_sos*
+@ENABLE_SOS_TRUE@#end ldms-sos
+
+%post
+bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
+	$RPM_INSTALL_PREFIX0 \
+	$RPM_INSTALL_PREFIX2 \
+	$RPM_INSTALL_PREFIX1 \
+	$RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/manifest
+
+%post test
+bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
+	$RPM_INSTALL_PREFIX0 \
+	$RPM_INSTALL_PREFIX2 \
+	$RPM_INSTALL_PREFIX1 \
+	$RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/manifest
+
+%post python2
+bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
+	$RPM_INSTALL_PREFIX0 \
+	$RPM_INSTALL_PREFIX2 \
+	$RPM_INSTALL_PREFIX1 \
+	$RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/manifest
+
+%changelog
+* Tue Aug 13 2019 Ben Allan <baallan@sandia.gov> 4.2.3-3
+Port toss packaging style to cray minipackage layout
