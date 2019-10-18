@@ -1,0 +1,414 @@
+# Set topdir to be builddir/rpm
+# note this is intentionally ignored by rpmbuild. must use
+# commandline syntax in makefile.am to get this effect.
+#% define _topdir %(echo $PWD)/toss
+# do not set unfascist build
+#%-define _unpackaged_files_terminate_build 0
+#%-define _missing_doc_files_terminate_build 0
+
+%global _scl_prefix /opt/ovis
+%{?scl:%scl_package ovis}
+%{!?scl:%global pkg_name %{name}}
+%global nfsmountable 1
+
+%define ldms_all System Environment/Libraries
+%define build_timestamp %(date +"%Y%m%d_%H%M")
+# % global __strip /bin/true
+%global _enable_debug_package 0
+%global _enable_debug_packages 0
+%global debug_package %{nil}
+%global __debug_install_post /bin/true
+%global __os_install_post /usr/lib/rpm/brp-compress %{nil}
+%if 0%{?rhel} && 0%{?rhel} <= 6
+%{!?__python2: %global __python2 /opt/python-2.7/bin/python}
+%{!?python2_sitelib: %global python2_sitelib %(%{__python2} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")}
+%{!?python2_sitearch: %global python2_sitearch %(%{__python2} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib(1))")}
+%endif
+
+# for rpm and cpio installation both allowed, we need this:
+%define relo_usr /@ovis_prefix@
+%define relo_etc /@ovis_sysconfdir@
+%define relo_var /@ovis_localstatedir@
+
+# Main package
+Summary: OVIS Commands and Libraries
+Name: %{?scl_prefix}ovis
+Version: @VERSION@
+Release: 1.0%{?dist}
+License: GPLv2 or BSD
+Group: %{ldms_all}
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+Source: %{pkg_name}-%{version}.tar.gz
+Requires: rpm >= 4.8.0
+BuildRequires: scl-utils-build
+@ENABLE_SOS_TRUE@Requires: %{?scl_prefix}sosdb-python2, %{?scl_prefix}sosdb >= 4.3.1 
+@ENABLE_SOS_TRUE@BuildRequires: %{?scl_prefix}sosdb-devel
+@ENABLE_LDMS_PYTHON_TRUE@Requires: python2
+@ENABLE_SWIG_TRUE@Requires: python2-devel
+@ENABLE_SSL_TRUE@Requires: openssl
+#@ENABLE_LIBGENDERS_TRUE@Requires: boost-regex boost-program-options
+@ENABLE_LIBGENDERS_TRUE@Requires: genders
+BuildRequires: gettext-devel gcc glib2-devel
+@ENABLE_DOC_TRUE@BuildRequires: doxygen
+@ENABLE_OVIS_AUTH_TRUE@BuildRequires: openssl-devel
+@ENABLE_SYSCLASSIB_TRUE@BuildRequires: libibverbs-devel
+@ENABLE_RDMA_TRUE@BuildRequires: librdmacm-devel
+@ENABLE_SWIG_TRUE@BuildRequires: python2 python2-devel
+@ENABLE_SWIG_TRUE@BuildRequires: swig
+@ENABLE_LIBGENDERS_TRUE@BuildRequires: boost-devel
+@ENABLE_LIBGENDERS_TRUE@BuildRequires: genders
+@ENABLE_KOKKOS_TRUE@@ENABLE_SOS_TRUE@Requires: python2-numpy
+@ENABLE_KOKKOS_TRUE@BuildRequires: bison bison-devel flex flex-devel, libevent >= 2.0.21
+@ENABLE_RABBITKW_TRUE@BuildRequires: librabbitmq librabbitmq-devel
+Url: http://ovis.ca.sandia.gov/
+%{?scl:Requires: %scl_runtime}
+
+# relocation prefix0 for file installs other than sysconfdir & localstatedir
+Prefix: %{?scl_prefix: %_scl_root}/usr
+# relocation prefix1 for runtime localstatedir post install hooks
+Prefix: %{?scl_prefix: %_scl_root}/var
+# relocation prefix2 for runtime sysconfdir post install hooks
+Prefix: %{?scl_prefix: %_scl_root}/etc
+
+
+%description
+This package provides the OVIS commands and libraries, OVIS apis and transport libraries, and scalable object store libraries for TOSS 3.
+Configured for relocation with @ac_configure_args@
+--prefix=%{relo_usr}
+--exec-prefix=%{relo_usr}
+--bindir=%{relo_usr}/bin
+--sbindir=%{relo_usr}/sbin
+--sysconfdir=%{relo_etc}
+--datadir=%{relo_usr}/share
+--includedir=%{relo_usr}/include
+--libdir='${exec_prefix}/lib64'
+--libexecdir=%{relo_usr}/libexec
+--mandir=%{relo_usr}/share/man
+--infodir=%{relo_usr}/share/info
+--sharedstatedir=%{relo_var}/lib
+--localstatedir=%{relo_var}
+
+
+%prep
+%setup -q -n %{pkg_name}-%{version}
+
+%dump
+
+%build
+echo bTMPPATH %{_tmppath}
+rm -rf $RPM_BUILD_ROOT
+echo bBUILDROOT $RPM_BUILD_ROOT
+export CFLAGS="@CFLAGS@ %{optflags} -O1 -g"
+./configure @ac_configure_args@ --localstatedir=%{relo_var} --prefix=%{relo_usr} --exec-prefix=%{relo_usr} --bindir=%{relo_usr}/bin --sbindir=%{relo_usr}/sbin --sysconfdir=%{relo_etc} --datadir=%{relo_usr}/share --includedir=%{relo_usr}/include --libdir='${exec_prefix}/lib64' --libexecdir=%{relo_usr}/libexec --mandir=%{relo_usr}/share/man --infodir=%{relo_usr}/share/info --sharedstatedir=%{relo_var}/lib
+
+ncores=`grep -c ^processor /proc/cpuinfo`
+make V=1 -j $ncores
+
+%install
+echo TMPPATH %{_tmppath}
+echo BUILDROOT $RPM_BUILD_ROOT
+make DESTDIR=${RPM_BUILD_ROOT} V=1 install
+ls %{buildroot}
+mkdir -p %{buildroot}%{_prefix}
+(cd %{buildroot}%{_prefix}/..; rmdir `basename %{buildroot}%{_prefix}`)
+mv %{buildroot}%{relo_usr} %{buildroot}%{_prefix}
+if test -d  %{buildroot}%{relo_etc}; then
+	mv %{buildroot}%{relo_etc} %{buildroot}%{_sysconfdir}
+fi
+
+# sbin wrapper rework
+for b in $RPM_BUILD_ROOT%{_sbindir}/ldms*; do
+	bn=`basename $b`
+	echo wrapping $bn
+	dn=`dirname $b`
+	mv $b $RPM_BUILD_ROOT%{_libdir}/ovis-ldms/$bn
+	(cd $dn; ln -s .ldms-wrapper $bn)
+done
+# grunge for no-devel restriction in some environments
+@ENABLE_RABBITKW_TRUE@if test -f $RPM_BUILD_ROOT%{_libdir}/ovis-ldms/libstore_rabbitkw.so -o -f $RPM_BUILD_ROOT%{_libdir}/ovis-ldms/libstore_rabbitv3.so; then
+@ENABLE_RABBITKW_TRUE@	(cd $RPM_BUILD_ROOT%{_libdir}/ovis-ldms/; ln -s /usr/lib64/librabbitmq.so.4 librabbitmq.so; ln -s /usr/lib64/librabbitmq.so.4 .; ln -s /usr/lib64/librabbitmq.so.4.2.0 . )
+@ENABLE_RABBITKW_TRUE@fi
+# remove unpackaged files from the buildroot
+rm -f $RPM_BUILD_ROOT%{_libdir}/*.la
+rm -f $RPM_BUILD_ROOT%{_libdir}/ovis-ldms/lib*.la
+rm $RPM_BUILD_ROOT%{_bindir}/test_*
+rm $RPM_BUILD_ROOT%{_bindir}/ldms_ban.sh
+find $RPM_BUILD_ROOT%{_docdir}/ovis-ldms-%{version} -maxdepth 1 -type f -exec mv {} $RPM_BUILD_ROOT%{_docdir}/%{pkg_name}-%{version}/ \;
+@ENABLE_TOSS_SYSTEMD_TRUE@mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/init.d
+@ENABLE_TOSS_SYSTEMD_TRUE@mkdir -p $RPM_BUILD_ROOT%{_prefix}/lib/systemd/system
+@ENABLE_TOSS_SYSTEMD_TRUE@cp $RPM_BUILD_ROOT%{_docdir}/%{pkg_name}-%{version}/sample_init_scripts/genders/sysv/etc/init.d/ldms* $RPM_BUILD_ROOT%{_sysconfdir}/init.d/
+@ENABLE_TOSS_SYSTEMD_TRUE@cp -ar $RPM_BUILD_ROOT%{_docdir}/%{pkg_name}-%{version}/sample_init_scripts/genders/systemd/etc/* $RPM_BUILD_ROOT%{_sysconfdir}
+# provide logger tag extension variable for systemd and initd by prepending ldms-functions
+@ENABLE_TOSS_SYSTEMD_TRUE@echo OVISCOLLNAME="%{?scl_prefix}" > $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/ldms.d/ldms-functions
+@ENABLE_TOSS_SYSTEMD_TRUE@cat $RPM_BUILD_ROOT%{_docdir}/%{pkg_name}-%{version}/sample_init_scripts/genders/systemd/etc/sysconfig/ldms.d/ldms-functions >> $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/ldms.d/ldms-functions
+# prepend systemd service names with collection name
+@ENABLE_TOSS_SYSTEMD_TRUE@cp $RPM_BUILD_ROOT%{_docdir}/%{pkg_name}-%{version}/sample_init_scripts/genders/systemd/services/ldmsd.service $RPM_BUILD_ROOT%{_prefix}/lib/systemd/system/%{?scl_prefix}ldmsd.service
+@ENABLE_TOSS_SYSTEMD_TRUE@cp $RPM_BUILD_ROOT%{_docdir}/%{pkg_name}-%{version}/sample_init_scripts/genders/systemd/services/ldmsd@.service $RPM_BUILD_ROOT%{_prefix}/lib/systemd/system/%{?scl_prefix}ldmsd@.service
+mkdir -p -m 755 $RPM_BUILD_ROOT%{_localstatedir}/log/ldmsd
+mkdir -p -m 755 $RPM_BUILD_ROOT%{_localstatedir}/run/ldmsd
+mkdir -p -m 755 $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/ldms.d/ClusterGenders
+mkdir -p -m 755 $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/ldms.d/ClusterSecrets
+mkdir -p -m 755 $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/ldms.d/plugins-conf
+
+echo making manifest
+./util/relocation/bld_manifest.sh %{buildroot}%{_prefix} %{buildroot}%{_sysconfdir} %{buildroot}%{_localstatedir} > %{buildroot}%{_prefix}/share/doc/ovis-@VERSION@/relocation/manifest
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+%files
+%defattr(-,root,root)
+%{_libdir}/*
+%{_bindir}/*
+%{_sbindir}/*
+%{_sbindir}/.ldms*
+#%{_sbindir}/.ldms-wrapper
+%{_datadir}/doc/%{pkg_name}-%{version}/relocation
+%{_docdir}/%{pkg_name}-%{version}/COPYING
+%{_docdir}/%{pkg_name}-%{version}/ChangeLog
+%{_docdir}/%{pkg_name}-%{version}/AUTHORS
+%exclude %{_bindir}/ldms-py*sh
+%exclude %{_bindir}/ldms-meminfo.sh
+%exclude %{_bindir}/ldms-static-test.sh
+%exclude %{_bindir}/ldmsd-wrapper.sh
+%exclude %{_bindir}/ldmsd-pre-systemd
+%exclude %{_bindir}/ldmsd-pre-sysvinit
+
+@ENABLE_SOS_TRUE@%exclude %{_libdir}/ovis-ldms/libstore_sos*
+@ENABLE_SOS_TRUE@%exclude %{_sbindir}/ldmsd_sos_init
+#end core
+
+# devel
+%package devel
+Summary: LDMS devel package
+Group: %{ldms_grp}
+Requires: %{?scl_prefix}ovis = @VERSION@
+%description devel
+This is a development package of Lightweight Distributed Metric System (LDMS).
+Users who want to implement their own sampler or store must install this
+package.
+
+%files devel
+%defattr(-,root,root)
+%{_includedir}/*/*.h
+%{_includedir}/*/*/*.h
+%{_includedir}/ovis-lib-config.h
+%{_includedir}/ovis-ldms-config.h
+#end devel
+
+%package test
+Summary: LDMS test package
+Group: %{ldms_grp}
+Requires: %{?scl_prefix}ovis = @VERSION@
+%description test
+This is a collection of test scripts for (LDMS).
+They also serve as examples, but are not usually of direct 
+interest on compute nodes in production clusters.
+
+%files test
+%defattr(-,root,root)
+%{_bindir}/ldms-py*sh
+%{_bindir}/ldms-meminfo.sh
+%{_bindir}/ldms-static-test.sh
+%{_datadir}/doc/ovis-ldms-%{version}/examples/static-test
+%{_datadir}/doc/ovis-ldms-%{version}/examples/slurm-test
+#end test
+
+# initscripts
+%package initscripts-base
+Summary: LDMS base initscripts for libgenders control of %{name}
+Group: %{ldms_grp}
+Requires: %{?scl_prefix}ovis = @VERSION@
+%description initscripts-base
+This is the support file set for libgenders based booting of LDMS daemons.
+Users normally provide information via /etc/genders (or alternate file)
+to make these scripts operate. With a manually written daemon
+control file, use of libgenders can be bypassed.
+
+%files initscripts-base
+%defattr(-,root,root)
+@ENABLE_TOSS_SYSTEMD_TRUE@%{_sysconfdir}/sysconfig/*
+@ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/sysconfig/ldms.d/ldmsd.local.conf
+@ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/sysconfig/ldms.d/ldmsd.agg.conf
+@ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/sysconfig/ldms.d/ClusterSecrets/ldmsauth.conf
+@ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/sysconfig/ldms.d/ClusterGenders/genders.local
+@ENABLE_TOSS_SYSTEMD_TRUE@%config(noreplace) %{_sysconfdir}/sysconfig/ldms.d/ClusterGenders/genders.agg
+@ENABLE_TOSS_SYSTEMD_TRUE@%{_bindir}/ldmsd-wrapper.sh
+
+@ENABLE_TOSS_SYSTEMD_TRUE@%post initscripts-base
+#  bash $RELO_DIR/relocate-paths.sh $USR $ETC $VAR $RELO_DIR/manifest
+bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
+	$RPM_INSTALL_PREFIX0 \
+	$RPM_INSTALL_PREFIX2 \
+	$RPM_INSTALL_PREFIX1 \
+	$RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/manifest
+
+#end initscripts-base
+
+@ENABLE_TOSS_SYSTEMD_TRUE@%package initscripts-systemd
+@ENABLE_TOSS_SYSTEMD_TRUE@Summary: LDMS systemd scripts for libgenders control of %{name}
+@ENABLE_TOSS_SYSTEMD_TRUE@Group: %{ldms_grp}
+@ENABLE_TOSS_SYSTEMD_TRUE@Requires: %{?scl_prefix}ovis = @VERSION@ %{?scl_prefix}ovis-initscripts-base
+@ENABLE_TOSS_SYSTEMD_TRUE@%description initscripts-systemd
+@ENABLE_TOSS_SYSTEMD_TRUE@This is the libgenders based systemd scripts for LDMS daemons.
+@ENABLE_TOSS_SYSTEMD_TRUE@Users normally provide information via /etc/genders (or alternate file)
+@ENABLE_TOSS_SYSTEMD_TRUE@to make these scripts operate. They are required to fail out of the box.
+@ENABLE_TOSS_SYSTEMD_TRUE@
+@ENABLE_TOSS_SYSTEMD_TRUE@%files initscripts-systemd
+@ENABLE_TOSS_SYSTEMD_TRUE@%defattr(-,root,root)
+@ENABLE_TOSS_SYSTEMD_TRUE@%config %{_prefix}/lib/systemd/system/%{?scl_prefix}ldmsd*.service
+@ENABLE_TOSS_SYSTEMD_TRUE@%config %{_bindir}/ldmsd-pre-systemd
+@ENABLE_TOSS_SYSTEMD_TRUE@%post initscripts-systemd
+@ENABLE_TOSS_SYSTEMD_TRUE@bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
+@ENABLE_TOSS_SYSTEMD_TRUE@	$RPM_INSTALL_PREFIX0 \
+@ENABLE_TOSS_SYSTEMD_TRUE@	$RPM_INSTALL_PREFIX2 \
+@ENABLE_TOSS_SYSTEMD_TRUE@	$RPM_INSTALL_PREFIX1 \
+@ENABLE_TOSS_SYSTEMD_TRUE@	$RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/manifest
+@ENABLE_TOSS_SYSTEMD_TRUE@#end initscripts-systemd
+
+@ENABLE_TOSS_SYSTEMD_TRUE@# initscripts-sysv
+@ENABLE_TOSS_SYSTEMD_TRUE@%package initscripts-sysv
+@ENABLE_TOSS_SYSTEMD_TRUE@Summary: LDMS sysv init scripts for libgenders control of %{name}
+@ENABLE_TOSS_SYSTEMD_TRUE@Group: %{ldms_grp}
+@ENABLE_TOSS_SYSTEMD_TRUE@Requires: %{?scl_prefix}ovis = @VERSION@ %{?scl_prefix}ovis-initscripts-base
+@ENABLE_TOSS_SYSTEMD_TRUE@%description initscripts-sysv
+@ENABLE_TOSS_SYSTEMD_TRUE@This is the libgenders based sysv init scripts for LDMS daemons.
+@ENABLE_TOSS_SYSTEMD_TRUE@Users must provide information via /etc/genders (or alternate file)
+@ENABLE_TOSS_SYSTEMD_TRUE@to make these scripts operate. They are required to fail out of the box.
+
+@ENABLE_TOSS_SYSTEMD_TRUE@%files initscripts-sysv
+@ENABLE_TOSS_SYSTEMD_TRUE@%defattr(-,root,root)
+@ENABLE_TOSS_SYSTEMD_TRUE@%config %{_sysconfdir}/init.d/ldms*
+@ENABLE_TOSS_SYSTEMD_TRUE@%config %{_bindir}/ldmsd-pre-sysvinit
+@ENABLE_TOSS_SYSTEMD_TRUE@%post initscripts-sysv
+@ENABLE_TOSS_SYSTEMD_TRUE@bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
+@ENABLE_TOSS_SYSTEMD_TRUE@	$RPM_INSTALL_PREFIX0 \
+@ENABLE_TOSS_SYSTEMD_TRUE@	$RPM_INSTALL_PREFIX2 \
+@ENABLE_TOSS_SYSTEMD_TRUE@	$RPM_INSTALL_PREFIX1 \
+@ENABLE_TOSS_SYSTEMD_TRUE@	$RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/manifest
+@ENABLE_TOSS_SYSTEMD_TRUE@#end initscripts-sysv
+
+
+%package doc
+Summary: Documentation files for %{name}
+Group: %{ldms_all}
+## Requires: %{name}-devel = %{version}-%{release}
+%description doc
+Doxygen files for ovis package.
+%files doc
+%defattr(-,root,root)
+%{_mandir}/*/*
+%{_datadir}/doc/%{pkg_name}-%{version}
+%exclude %{_datadir}/doc/%{pkg_name}-%{version}/relocation
+%exclude %{_datadir}/doc/ovis-ldms-%{version}/examples
+## %{_datadir}/doc/ovis-lib-%{version}
+## %%docdir %{_defaultdocdir}
+%docdir %{_datadir}/doc
+%post doc
+bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
+	$RPM_INSTALL_PREFIX0 \
+	$RPM_INSTALL_PREFIX2 \
+	$RPM_INSTALL_PREFIX1 \
+	$RPM_INSTALL_PREFIX0//share/doc/ovis-@VERSION@/relocation/manifest
+
+%package python2
+Summary: Python files for LDMS
+%description python2
+Python files for ovis
+# install needs
+Requires: %{?scl_prefix}ovis >= 3.0.0 python
+# build needs
+@ENABLE_LDMS_PYTHON_TRUE@BuildRequires: python
+@ENABLE_SWIG_TRUE@BuildRequires: python python-devel swig
+%files python2
+%defattr(-,root,root)
+@ENABLE_SWIG_TRUE@%{_prefix}/lib/python2.7/site-packages/ovis_lib
+@ENABLE_SWIG_TRUE@%{_prefix}/lib/python2.7/site-packages/ovis_ldms
+@ENABLE_LDMS_PYTHON_TRUE@%{_prefix}/lib/python2.7/site-packages/ldmsd
+#%%{python2_sitelib}/*
+#end python2
+# see https://fedoraproject.org/wiki/Packaging:Python_Old
+# and https://fedoraproject.org/wiki/Packaging:Python
+
+@ENABLE_SOS_TRUE@%package ldms-sos
+@ENABLE_SOS_TRUE@Summary: LDMS sosdb plugins
+@ENABLE_SOS_TRUE@Requires: %{?scl_prefix}sosdb
+@ENABLE_SOS_TRUE@%description ldms-sos
+@ENABLE_SOS_TRUE@Libraries and utilities for SOS usage in LDMS
+@ENABLE_SOS_TRUE@%files ldms-sos
+@ENABLE_SOS_TRUE@%defattr(-,root,root)
+@ENABLE_SOS_TRUE@%{_sbindir}/ldmsd_sos_init
+@ENABLE_SOS_TRUE@%{_libdir}/ovis-ldms/libstore_sos*
+@ENABLE_SOS_TRUE@#end ldms-sos
+
+%post
+bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
+	$RPM_INSTALL_PREFIX0 \
+	$RPM_INSTALL_PREFIX2 \
+	$RPM_INSTALL_PREFIX1 \
+	$RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/manifest
+
+%post test
+bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
+	$RPM_INSTALL_PREFIX0 \
+	$RPM_INSTALL_PREFIX2 \
+	$RPM_INSTALL_PREFIX1 \
+	$RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/manifest
+
+%post python2
+bash $RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/relocate-paths.sh \
+	$RPM_INSTALL_PREFIX0 \
+	$RPM_INSTALL_PREFIX2 \
+	$RPM_INSTALL_PREFIX1 \
+	$RPM_INSTALL_PREFIX0/share/doc/ovis-@VERSION@/relocation/manifest
+
+%changelog
+* Wed Oct 16 2019 Ben Allan <baallan@sandia.gov> 4.3.1-1
+Update to 4.3.1 and /opt/ovis/$version software collection
+* Fri Jun 21 2019 Ben Allan <baallan@sandia.gov> 4.2.3-1
+Update to 4.2.3 with sosdb refactored to a dependency package.
+* Thu Oct 25 2018 Ben Allan <baallan@sandia.gov> 3.4.11-1
+Update to 3.4.11 and try lanl suggested require reduction.
+* Wed Sep 26 2018 Ben Allan <baallan@sandia.gov> 3.4.10-1
+Update to 3.4.10 and remove runtime librabbitmq-devel dependence.
+* Wed Jul 25 2018 Ben Allan <baallan@sandia.gov> 3.4.8-1
+Config support of store_rabbitkw.
+* Thu Apr 19 2018 Ben Allan <baallan@sandia.gov> 3.4.6-1
+SOS/baler v3 deprecation. Wrapper file for sbin exec relocation support.
+* Wed Oct 18 2017 Ben Allan <baallan@sandia.gov> 3.4.4-4
+Cray relocation scheme
+* Thu Aug 31 2017 Ben Allan <baallan@sandia.gov> 3.4.4-2.1
+Update for upstream and override -O2 which produces infinite loop bugs
+with toss gcc 4.8.5.
+* Wed Apr 26 2017 Ben Allan <baallan@sandia.gov> 3.4.1-1
+Flex array and swig bug patches. Refactor cython dependent bits.
+* Wed Mar 29 2017 Ben Allan <baallan@sandia.gov> 3.4.0-1
+Update package refactorization
+* Tue Mar 14 2017 Ben Allan <baallan@sandia.gov> 3.3.1-2
+Update package refactorization
+* Tue Feb 21 2017 Ben Allan <baallan@sandia.gov> 3.3.1-1
+Update for gender feature.
+* Thu Aug 25 2016 Ben Allan <baallan@sandia.gov> 3.0.0-21
+Update for baler features.
+* Mon Mar 14 2016 Ben Allan <baallan@sandia.gov> 3.0.0-6
+Update for cray/sos features.
+* Tue Mar 01 2016 Ben Allan <baallan@sandia.gov> 3.0.0-3
+ported for LANL monitoring server.
+* Tue Nov 03 2015 Ben Allan <baallan@sandia.gov> 3.0.0-2
+ported for LANL monitoring server.
+* Tue Oct 13 2015 Ben Allan <baallan@sandia.gov> 3.0.0-1
+update to v3.
+* Tue Aug 25 2015 Ben Allan <baallan@sandia.gov> 2.4.5-1
+update to latest upstream.
+* Wed Jul 29 2015 Ben Allan <baallan@sandia.gov> 2.4.4-1
+update to latest upstream.
+* Thu Jun 18 2015 Ben Allan <baallan@sandia.gov> 2.4.3-1
+packaging of initscripts for ldmsd/ldms-aggd.
+* Sat May 23 2015 Ben Allan <baallan@sandia.gov> 2.4.2-1
+update to latest upstream.
+* Thu Apr 23 2015 Ben Allan <baallan@sandia.gov> 2.4.1-1
+packaging with sysclassib and procstatutil2 enabled.
+* Wed Feb 18 2015 Ben Allan <baallan@sandia.gov> 2.4.0-1
+packaging with separate libevent
+* Mon Sep 15 2014 Ben Allan <baallan@sandia.gov> 2.2.0-1
+all-in-one packaging w/libevent

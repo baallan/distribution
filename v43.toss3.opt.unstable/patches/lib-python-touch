@@ -1,0 +1,13 @@
+diff --git a/lib/python/Makefile.am b/lib/python/Makefile.am
+index f775d0b..2f66e44 100644
+--- a/lib/python/Makefile.am
++++ b/lib/python/Makefile.am
+@@ -17,7 +17,7 @@ Map.c: Map.pyx Map.pxd
+ 	cython --gdb $< -o $@
+ 
+ install-data-local: Map.la
+-	touch $(pythondir)/ovis_lib/__init__.py
++	touch $(DESTDIR)/$(pythondir)/ovis_lib/__init__.py
+ 
+ clean-local:
+ 	rm -rf Map.c

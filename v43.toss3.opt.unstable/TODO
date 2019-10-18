@@ -1,0 +1,16 @@
+fix /var/run locations in scripts or in relocation definiiton
+think about meta package with relocations
+
+INSTALL NOTES:
+# relocate var to root
+rpm -Uvh  --relocate /opt/ovis/ovis_4.3.1/root/var=/varovis_4.3.1 ./ovis/Tars/ovis-4.3.1/v43.toss3.opt.unstable/RPMS/x86_64/ovis_4.3.1-ovis-*rpm
+# relocate everything to somewhere odd, but allow scl to work
+rpm -Uvh  --relocate /opt/ovis/ovis_4.3.1/root/var=/tmp/fred/root/var \
+          --relocate /opt/ovis/ovis_4.3.1/root/etc=/tmp/fred/root/etc  \
+          --relocate /opt/ovis/ovis_4.3.1/root/usr=/tmp/fred/root/usr \
+	./ovis/Tars/ovis-4.3.1/v43.toss3.opt.unstable/RPMS/x86_64/ovis_4.3.1-ovis-*rpm
+
+after rpm install
+scl register /opt/ovis/ovis_4.3.1
+systemctl link /opt/ovis/ovis_4.3.1/root/usr/lib/systemd/system/ovis_4.3.1-ldmsd.service
+systemctl link /opt/ovis/ovis_4.3.1/root/usr/lib/systemd/system/ovis_4.3.1-ldmsd@.service

@@ -54,6 +54,7 @@ rpm builds require known rpms for cython and numpy, so these are provided in the
 * The numpy and cython rpm spec files and generated rpms for python 2.7 will also work in plain RHEL 7 environments.
 * v41.rhel7.unstable: This builds the v4.x series for RHEL7. It currently uses v4.2.3 OVIS and corresponding v4.2.1 SOS for TOSS 3, both from github.
 * v42.toss3.unstable: This builds the 4.2.3 OVIS and 4.2.1 SOS for TOSS 3.4.
+* v43.toss3.opt.unstable: This builds the 4.3.1 OVIS and 4.3 SOS for TOSS 3.5 /opt deployments.
 
 ## Packaging conflicts for EPEL and Redhat note: unsatisfied dependencies
 

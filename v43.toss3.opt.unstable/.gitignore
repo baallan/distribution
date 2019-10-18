@@ -1,0 +1,14 @@
+ovis
+plist
+rlist
+sos
+*log
+*.spec
+*.tar
+*.gz
+firerpms.orig
+ovisdeps
+ovisfiles
+sosdeps
+sosfiles
+sos-*.unstable.spec
