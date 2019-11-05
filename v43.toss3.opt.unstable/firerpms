@@ -3,7 +3,7 @@
 #
 export COLLVERSION=$(cat ./collversion)
 packing=v43.toss3.opt.unstable
-ovis_branch=OVIS-$COLLVERSION
+ovis_branch=OVIS-${COLLVERSION}-beta
 sospkg= ; # if set empty, disable sos in ldms
 sospkg=sosdb-4.3.1
 NetworkRequires=github.com
@@ -27,7 +27,7 @@ else
 	SOS_OPTS=""
 fi
 
-prefix=/opt/ovis/4.3.1
+prefix=/opt/ovis/4.3.3
 PACK_OPTS="
 --disable-rpath
 --disable-static

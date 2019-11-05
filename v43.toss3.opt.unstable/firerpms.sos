@@ -15,7 +15,7 @@ if test -n "$MODULEPATH"; then
 fi
 . ../support/package-functions
 
-prefix=/usr
+prefix=/opt/ovis/4.3.3
 PACK_OPTS="
 --disable-static
 --prefix=$prefix

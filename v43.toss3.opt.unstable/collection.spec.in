@@ -1,6 +1,6 @@
 %global scl_name_prefix ovis-
 %global scl_name_base ovis
-%global scl_name_version 4.3.1
+%global scl_name_version 4.3.3
 %global _scl_prefix /opt/ovis
 
 # Optional but recommended: define nfsmountable
