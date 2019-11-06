@@ -1,0 +1,7 @@
+# local variables
+name=numpy
+version=1.14.6
+prefix=/opt/$name/$version
+libdir=$prefix/lib64
+
+export PYTHONPATH=$libdir/python2.7/site-packages:$PYTHONPATH

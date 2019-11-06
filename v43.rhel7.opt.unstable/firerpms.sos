@@ -1,0 +1,122 @@
+#!/bin/bash
+#
+#
+export COLLVERSION=$(cat ./collversion)
+packing=v43.rhel7.opt.unstable
+sos_branch=OVIS-4.3
+NetworkRequires=github.com
+SOSREPO=https://github.com/ovis-hpc/sos.git
+
+if test -n "$MODULEPATH"; then
+	module purge
+	module use /opt/modules/modulefiles
+	module load cython
+	module load numpy
+else
+	. /opt/cython/0.28.5/enable
+	. /opt/numpy/1.14.6/enable
+fi
+. ../support/package-functions
+
+prefix=/opt/ovis/4.3.3
+PACK_OPTS="
+--disable-static
+--prefix=$prefix
+"
+DOC_OPTS="
+--enable-doc
+--enable-doc-html
+--enable-doc-man
+--enable-doc-graph
+"
+
+IFACE_OPTS="
+--enable-python
+"
+
+allconfig="$PACK_OPTS $IFACE_OPTS $DOC_OPTS"
+
+if ! pack_prechecks_sos "$allconfig"; then
+	echo "Check dependencies listed above, install needed packages, and try again"
+	exit 1
+fi
+
+dn=$(pwd)
+bn=$(basename $dn)
+if test "$bn" = "$packing" -a -f sos.spec.in; then
+	: in the right place
+else
+	echo This must be run from $packing, which should be clean and at any rate will be overwritten.
+	exit 1
+fi
+
+specdir=$dn
+SOSTAR=sos.tar
+
+/bin/rm -rf sos
+if ! git clone $SOSREPO sos; then
+	echo cannot checkout sos
+	exit 1
+fi
+
+cd sos
+if ! git checkout $sos_branch; then
+	echo cannot checkout sos branch $sos_branch
+	exit 1
+fi
+
+VERSION=$(pack_get_ac_version configure.ac)
+PACKAGE=$(pack_get_ac_name configure.ac)
+# Find SHA of latest checkin someone tagged
+COMMIT_ID="$(git log -1 --pretty="%H")"
+BASE_COMMIT_ID="$(git rev-parse $ovis_branch)"
+
+# Get most recent tag id for this branch
+TAG_ID="$(git describe --tags --abbrev=0)"
+TARGET=${PACKAGE}-${VERSION}.tar
+REPO_DIR=`pwd`
+OUTPUT_DIR=`pwd`/Tars
+# Create output dir
+mkdir -p $OUTPUT_DIR
+# populate outdir inputs
+git archive --prefix=${PACKAGE=}-${VERSION}/ $COMMIT_ID --format=tar --output=${OUTPUT_DIR}/$TARGET
+cd ..
+
+cd $OUTPUT_DIR
+
+# Untar archive and generate build files
+echo "Untarring archive"
+tar xf $TARGET && \
+(cd ${PACKAGE}-${VERSION} && \
+./autogen.sh)
+if ! test -f ${PACKAGE}-${VERSION}/configure; then
+	echo "unable to generate sos build files"
+	exit 1
+fi
+
+tar czf $TARGET.gz ${PACKAGE}-${VERSION}
+
+echo "Relocating cruft"
+rm -rf old
+mkdir old
+mv -f ${PACKAGE}-${VERSION} $TARGET old
+specfile=sos-${packing}.spec
+tar zxf $TARGET.gz && \
+cd ${PACKAGE}-${VERSION} && \
+echo "================ configure for $packing rpms =============" && \
+./configure CC=gcc CXX=g++ $allconfig && \
+echo "============================= make $packing rpms =============" && \
+make dist-gzip && \
+mkdir -p $packing/{BUILD,RPMS,SOURCES,SPECS,SRPMS} && \
+cp $TARGET.gz $packing/SOURCES && \
+./config.status --file=$specdir/$specfile:$specdir/sos.spec.in && \
+rpmbuild -v --define "_topdir `pwd`/$packing" -ba $specdir/$specfile --define "scl ovis_${COLLVERSION}"  && \
+touch completed
+if ! test -f completed; then
+	echo FAIL
+else
+	echo PASS
+	cd $dn
+	echo the droids you seek may be:
+	find . -name '*.rpm'
+fi

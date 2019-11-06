@@ -1,0 +1,10 @@
+# local variables
+name=cython
+version=0.28.5
+prefix=/opt/$name/$version
+bindir=$prefix/bin
+libdir=$prefix/lib64
+
+export PATH=$bindir:$PATH
+export LD_LIBRARY_PATH=$libdir:$LD_LIBRARY_PATH
+export PYTHONPATH=$libdir/python2.7/site-packages:$PYTHONPATH

@@ -1,0 +1,44 @@
+#!/bin/bash
+#
+#
+export COLLVERSION=$(cat ./collversion)
+packing=v43.rhel7.opt.unstable
+
+if test -n "$MODULEPATH"; then
+	module purge
+	module use /opt/modules/modulefiles
+	module load cython
+	module load numpy
+else
+	. /opt/cython/0.28.5/enable
+	. /opt/numpy/1.14.6/enable
+fi
+. ../support/package-functions
+
+dn=$(pwd)
+bn=$(basename $dn)
+if test "$bn" = "$packing" -a -f sos.spec.in; then
+	: in the right place
+else
+	echo This must be run from $packing, which should be clean and at any rate will be overwritten.
+	exit 1
+fi
+
+specdir=$dn
+specfile=collection.spec.in
+
+chmod a+w -R collection
+rm -rf collection
+mkdir collection
+cd collection
+../ovis/Tars/ovis-*/config.status --file=$specdir/$specfile:$specdir/collection.spec.in && \
+rpmbuild -v --define "_topdir `pwd`/$packing" -ba $specdir/$specfile --define "scl ovis_${COLLVERSION}" && \
+touch completed
+if ! test -f completed; then
+	echo FAIL
+else
+	echo PASS
+	cd $dn
+	echo the droids you seek may be:
+	find . -name '*.rpm'
+fi

@@ -17,6 +17,8 @@ In the TOSS 3 modules environment,
 ```
  module load cython/0.28.5/py2.7
 ```
+In a redhat 7 environment,
+  cp enable /opt/cython/0.28.5/enable
 
 RPM Dependencies:
 ```

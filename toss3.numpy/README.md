@@ -23,6 +23,8 @@ In the TOSS 3 modules environment,
  module load cython/0.28.5/py2.7
  module load numpy/1.14.6/py2.7 
 ```
+In a redhat 7 environment,
+  cp enable /opt/numpy/1.14.6/enable
 
 RPM Dependencies:
 ```
