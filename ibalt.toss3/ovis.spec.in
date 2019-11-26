@@ -43,9 +43,9 @@ Requires: libevent >= 2.0.21
 BuildRequires: gettext-devel gcc glib2-devel
 @ENABLE_DOC_TRUE@BuildRequires: doxygen
 @ENABLE_OVIS_AUTH_TRUE@BuildRequires: openssl-devel
-#@ENABLE_SYSCLASSIB_TRUE@BuildRequires: libibverbs-devel
-#@ENABLE_RDMA_TRUE@BuildRequires: librdmacm-devel libibverbs-devel
-#@ENABLE_SYSCLASSIB_TRUE@BuildRequires: libibmad libibmad-devel libibumad libibumad-devel
+@ENABLE_SYSCLASSIB_TRUE@BuildRequires: libibverbs-devel
+@ENABLE_RDMA_TRUE@BuildRequires: librdmacm-devel libibverbs-devel opensm-devel
+@ENABLE_SYSCLASSIB_TRUE@BuildRequires: libibmad libibmad-devel libibumad libibumad-devel
 BuildRequires: libevent libevent-devel
 @ENABLE_SWIG_TRUE@BuildRequires: python python-devel
 @ENABLE_SWIG_TRUE@BuildRequires: swig
