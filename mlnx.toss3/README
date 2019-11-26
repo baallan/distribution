@@ -1,0 +1,4 @@
+This is a build which (at the rpm spec level) assumes a very specific
+set of IB rpms.
+
+Use at your own risk.
