@@ -1,6 +1,0 @@
-This is a build which (at the rpm spec level) leaves the ib package dependencies
-unspecified on purpose. It can accomodate a variety of alternate ib stacks such as mofed,
-but the onus is on the user to make sure the rpms created are deployed only in 
-enviroments which will satisfy the unstated Requires.
-
-Use at your own risk.
