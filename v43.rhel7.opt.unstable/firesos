@@ -2,6 +2,7 @@
 #
 #
 export COLLVERSION=$(cat ./collversion)
+SCL=sandia-ovis_${COLLVERSION}
 packing=v43.rhel7.opt.unstable
 sos_branch=OVIS-4.3
 NetworkRequires=github.com
@@ -35,6 +36,7 @@ IFACE_OPTS="
 "
 
 allconfig="$PACK_OPTS $IFACE_OPTS $DOC_OPTS"
+echo $allconfig 
 
 if ! pack_prechecks_sos "$allconfig"; then
 	echo "Check dependencies listed above, install needed packages, and try again"
@@ -109,8 +111,7 @@ echo "============================= make $packing rpms =============" && \
 make dist-gzip && \
 mkdir -p $packing/{BUILD,RPMS,SOURCES,SPECS,SRPMS} && \
 cp $TARGET.gz $packing/SOURCES && \
-./config.status --file=$specdir/$specfile:$specdir/sos.spec.in && \
-rpmbuild -v --define "_topdir `pwd`/$packing" -ba $specdir/$specfile --define "scl ovis_${COLLVERSION}"  && \
+rpmbuild -v --define "_topdir `pwd`/$packing" --define "scl $SCL" --define "scl_name_version $COLLVERSION" -ba $specdir/$specfile && \
 touch completed
 if ! test -f completed; then
 	echo FAIL

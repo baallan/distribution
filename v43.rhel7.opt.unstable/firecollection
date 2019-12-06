@@ -25,14 +25,12 @@ else
 fi
 
 specdir=$dn
-specfile=collection.spec.in
+specfile=collection.spec
 
-chmod a+w -R collection
 rm -rf collection
 mkdir collection
 cd collection
-../ovis/Tars/ovis-*/config.status --file=$specdir/$specfile:$specdir/collection.spec.in && \
-rpmbuild -v --define "_topdir `pwd`/$packing" -ba $specdir/$specfile --define "scl ovis_${COLLVERSION}" && \
+rpmbuild -v --define "_topdir `pwd`/$packing" -ba ../$specfile && \
 touch completed
 if ! test -f completed; then
 	echo FAIL
