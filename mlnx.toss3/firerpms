@@ -142,7 +142,7 @@ else
 fi
 
 #patches="ovis_self.patch"
-patches=
+patches=zap.rdma.err.messages
 for i in $patches; do
 	patch -p1 < ../patches/$i
 	git commit -a -m "add $packing distribution patches"
