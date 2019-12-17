@@ -62,7 +62,7 @@ yum install sandia-ovis_4.3.3
 ```
 
 You can create an RPM repo from the files created by fire\*
-running the 'root-make-repo' script.
+running the 'root-makerepo' script.
 It's use is an exercise left to the reader. You probably want
 to specify a directory other than the build tree for the repo.
 
