@@ -2,6 +2,7 @@ As of Dec 2018, there are several planned platforms, organized by directory. See
 
 ## Platforms with binary packaging
 
+* **v43.toss3.opt.stable/** TOSS 3 RHEL 7 derivative as Software Collections
 * **toss2/** TOSS 2 RHEL 6 derivative with specialized plugins is deprecated.
 
 * **toss3/** TOSS 3 RHEL 7 derivative with specialized plugins
@@ -13,6 +14,11 @@ As of Dec 2018, there are several planned platforms, organized by directory. See
 * **u16/** Ubuntu 16 without specialized plugins
  * If you wish to contribute a binary build (.deb format), please contact ovis-help@sandia.gov.
 
+## Making software collections for LDMS (/opt packages)
+Clone this repository to a scratch directory, go to the directory of interest and follow the README.md.
+Building the collections has multiple "package, then install" steps unless you have advanced
+package building automation.
+
 ## Making packages
 Clone this repository to a scratch directory, go to the directory of interest, and execute the **firerpms** script. E.g.
 
@@ -23,6 +29,7 @@ Clone this repository to a scratch directory, go to the directory of interest, a
 
 If successful, this will get you a list of rpms for the latest stable public release on that platform. The rpms are relocatable, which is at variance with most Linux distribution's standard policies.
 You will need pre-installed the utility packages for building RPMs in general.
+This works for LDMS v3 and other versions installed in the standard /usr prefix by default.
 
 ## Making packages off the grid
 Sites which need to build RPMs on a machine without external access to github

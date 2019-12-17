@@ -189,7 +189,7 @@ function pack_ck_pydev {
 
 # python numeric check
 function pack_ck_numpy {
-	pack_checkdirs_none /opt/numpy /usr/include/numpy
+	pack_checkdirs_none /opt/ovis/sandia-ovis_python2* /opt/numpy /usr/include/numpy 
 	x=$?
 	if test "$x" != "0"; then
 		echo missing package numpy or equivalent
@@ -204,8 +204,7 @@ function pack_ck_sosdb {
 	x=$?
 	if test "$x" != "0"; then
 		echo missing package sosdb
-		echo may need to build python2-cython and python2-numpy
-		echo "(see toss3.cython and toss3.numpy directories)"
+		echo may need to build ovis python and numpy.
 		echo may need to firerpms.sos and install sosdb.
 	fi
 	return $?
@@ -213,12 +212,20 @@ function pack_ck_sosdb {
 
 # cython check
 function pack_ck_cython {
-	pack_checkfiles_none /opt/cython/0.28.5/bin/cython
-	x=$?
-	if test "$x" != "0"; then
-		echo missing package Cython or equivalent
-	fi
-	return $x
+	q=$(cython -V 2>&1 | grep "Cython version " | sed -e 's/Cython version //')
+	case $q in
+        0.3[0-9].*)
+		echo "letting cython $q through; don't know if it works"
+		return 0
+		;;
+        0.2[789].*)
+		return 0
+		;;
+	*)
+		echo "Found cython $q. Need 0.28 or later package installed and in path"
+		return 1
+		;;
+	esac
 }
 
 # swig 2 check

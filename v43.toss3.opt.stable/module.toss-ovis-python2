@@ -1,0 +1,22 @@
+#%Module1.0
+# vi:set filetype=tcl:
+#
+
+# global control file
+if { [file exists $env(MODULESHOME)/etc/control] } {
+   source $env(MODULESHOME)/etc/control
+}
+
+# local variables
+set name	ovis_python2
+set version	4.3
+set prefix	/opt/ovis/sandia-ovis_python2_4.3/root/usr
+set bindir	$prefix/bin
+set libdir	$prefix/lib64
+set mandir	$prefix/share/man
+
+prepend-path	MANPATH	$mandir
+prepend-path	PATH $bindir
+prepend-path	LD_LIBRARY_PATH $libdir
+prepend-path	PYTHONPATH $libdir/python2.7/site-packages
+

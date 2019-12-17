@@ -1,0 +1,12 @@
+diff --git a/configure.ac b/configure.ac
+index 6b3f795..f640cc4 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -61,6 +61,7 @@ OPTION_HOSTINFO
+ # define substitutions for configvars and other sed-generated files.
+ # note carefully the escapes.
+ OVIS_DO_SUBST([OVIS_SUBST_RULE], ["sed \
++-e 's,[[@]]VERSION[[@]],\$(VERSION),g' \
+ -e 's,[[@]]mandir[[@]],\$(mandir),g' \
+ -e 's,[[@]]localedir[[@]],\$(localedir),g' \
+ -e 's,[[@]]libdir[[@]],\$(libdir),g' \

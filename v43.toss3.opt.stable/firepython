@@ -1,0 +1,42 @@
+#!/bin/bash
+#
+#
+export PYVERSION=$(cat ./ovispyversion)
+SCL=sandia-ovis_python2_$PYVERSION
+packing=v43.toss3.opt.stable
+
+PART=PYTHON
+NetworkRequires=github.com
+
+if test -n "$MODULEPATH"; then
+	module purge
+fi
+. ../support/package-functions
+
+dn=$(pwd)
+specdir=$dn
+bn=$(basename $dn)
+specfile=python.spec
+if test "$bn" = "$packing" -a -f $specfile; then
+	: in the right place
+else
+	echo This must be run from $packing, which should be clean and at any rate will be overwritten.
+	exit 1
+fi
+rm -rf $PART
+mkdir $PART
+(cd $PART && \
+rpmbuild -v \
+ --define "_topdir `pwd`/$packing" \
+ --define "scl $SCL" \
+ --define "scl_name_version $PYVERSION" \
+ -ba $specdir/$specfile && \
+touch completed)
+if ! test -f $PART/completed; then
+	echo FAIL
+else
+	echo PASS
+	cd $dn
+	echo the droids you seek may be:
+	find $PART -name '*.rpm'
+fi

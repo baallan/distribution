@@ -1,0 +1,41 @@
+#!/bin/bash
+#
+#
+export COLLVERSION=$(cat ./collversion)
+packing=v43.toss3.opt.stable
+PART=OVIS
+
+if test -n "$MODULEPATH"; then
+	module purge
+fi
+. ../support/package-functions
+
+dn=$(pwd)
+bn=$(basename $dn)
+specfile=ovis.spec
+if test "$bn" = "$packing" -a -f $specfile; then
+	: in the right place
+else
+	echo This must be run from $packing, which should be clean and at any rate will be overwritten.
+	exit 1
+fi
+
+specdir=$dn
+specfile=ovis.spec
+
+rm -rf $PART
+mkdir $PART
+(cd $PART && \
+rm -f completed && \
+rpmbuild -v \
+ --define "_topdir `pwd`/$PART/$packing" \
+ -ba $specdir/$specfile && \
+touch completed)
+if ! test -f $PART/completed; then
+	echo FAIL
+else
+	echo PASS
+	cd $dn
+	echo the droids you seek may be:
+	find $PART -name '*.rpm'
+fi

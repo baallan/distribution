@@ -1,0 +1,139 @@
+#!/bin/bash
+#
+#
+export PYVERSION=$(cat ./ovispyversion)
+export COLLVERSION=$(cat ./ovisversion)
+SCL=sandia-ovis_${COLLVERSION}
+packing=v43.toss3.opt.stable
+PART=LDMS
+ovis_branch=OVIS-${COLLVERSION}
+sospkg= ; # if set empty, disable sos in ldms
+sospkg=sosdb-4.3.1
+NetworkRequires=github.com
+OVISREPO=https://github.com/ovis-hpc/ovis.git
+
+if test -n "$MODULEPATH"; then
+	module purge
+	if test -n "$sospkg"; then
+		module use /opt/modules/modulefiles
+		module load ovis_python2/4.3
+	fi
+else
+	. /opt/ovis/sandia-ovis_python2_4.3/enable
+fi
+. ../support/package-functions
+
+if test -n "$sospkg"; then
+	USESOS="--enable-sos"
+	SOS_OPTS="--with-sos=/usr"
+else
+	USESOS="--disable-sos"
+	SOS_OPTS=""
+fi
+
+# config flags to use in prechecking only.
+# assumes similarity to ldms.spec; changes here are not
+# propagated to the spec file.
+check_configure_args="--disable-static --with-pkglibdir=ovis-ldms --enable-ovis_auth --enable-ssl --enable-ovis_event --enable-zap --enable-sock --enable-rdma --disable-mmap --enable-swig --disable-readline --enable-ldms-python --enable-python --enable-libgenders --enable-genderssystemd --enable-sos --enable-flatfile --enable-csv --enable-store --disable-rabbitv3 --enable-rabbitkw --enable-kokkos --disable-cray_power_sampler --disable-cray_system_sampler --disable-aries-gpcdr --disable-gpcdlocal --disable-aries-mmr --disable-ugni --disable-perfevent --disable-papi --disable-procdiskstats --disable-atasmart --disable-hadoop --disable-generic_sampler --disable-switchx --disable-sensors --enable-dstat --enable-llnl-edac --enable-sysclassib --enable-opa2 --enable-jobinfo --enable-perf --enable-jobid --enable-array_example --enable-procinterrupts --enable-procnetdev --enable-procnfs --enable-procsensors --enable-procstat --enable-vmstat --enable-meminfo --enable-lustre --enable-slurmtest --enable-filesingle"
+
+if ! pack_prechecks "$check_configure_args"; then
+	echo "Check dependencies listed above, install needed packages, and try again"
+	exit 1
+fi
+
+dn=$(pwd)
+specdir=$dn
+bn=$(basename $dn)
+specfile=ldms.spec
+if test "$bn" = "$packing" -a -f $specfile; then
+	: in the right place
+else
+	echo This must be run from $packing, which should be clean and at any rate will be overwritten.
+	exit 1
+fi
+
+/bin/rm -rf LDMS
+if ! git clone $OVISREPO $PART; then
+	echo cannot checkout ovis.
+	exit 1
+fi
+
+cd $PART
+if ! git checkout $ovis_branch; then
+	echo cannot checkout ovis branch $ovis_branch.
+	exit 1
+fi
+cd ..
+
+
+cd $PART
+patches="ldms-functions.in-add-ocn ldms-wrapper.in.libdir ldms-systemd-identifer top-configure-subst"
+for i in $patches; do
+	patch -p1 < ../patches/$i
+	git commit -a -m "add $packing distribution patches: $i"
+done
+VERSION=$(pack_get_ac_version configure.ac)
+PACKAGE=$(pack_get_ac_name configure.ac)
+# Find SHA of latest checkin someone tagged
+COMMIT_ID="$(git log -1 --pretty="%H")"
+BASE_COMMIT_ID="$(git rev-parse $ovis_branch)"
+
+# Get most recent tag id for this branch
+TAG_ID="$(git describe --tags --abbrev=0)"
+TARGET=${PACKAGE}-${VERSION}.tar
+REPO_DIR=`pwd`
+OUTPUT_DIR=`pwd`/Tars
+# Create output dir
+mkdir -p $OUTPUT_DIR
+# populate outdir inputs
+git archive --prefix=${PACKAGE=}-${VERSION}/ $COMMIT_ID --format=tar --output=${OUTPUT_DIR}/$TARGET
+cd ..
+
+sleep 0.1
+
+cd $OUTPUT_DIR
+
+# Untar archive
+echo "Untarring archive"
+tar xf $TARGET && \
+(cd ${PACKAGE}-${VERSION} && \
+./autogen.sh)
+if ! test -f ${PACKAGE}-${VERSION}/configure; then
+	echo "unable to generate $PART build files"
+	exit 1
+fi
+
+# Tar back up excluding unwanted files and dirs
+echo "tarring archive with excludes from "
+echo "$REPO_DIR/util/tar-excludes.txt"
+TAR_OPTS="-X $REPO_DIR/util/tar-excludes.txt"
+tar czf $TARGET.gz $TAR_OPTS ${PACKAGE}-${VERSION}
+
+echo "Relocating cruft"
+rm -rf old
+mkdir old
+mv -f ${PACKAGE}-${VERSION} $TARGET old
+
+tar zxf $TARGET.gz && \
+cd ${PACKAGE}-${VERSION} && \
+echo "================ configure for $packing rpms =============" && \
+./configure CC=gcc CXX=g++ $allconfig && \
+echo "============================= make $packing rpms =============" && \
+make dist-gzip && \
+mkdir -p $PART/$packing/{BUILD,RPMS,SOURCES,SPECS,SRPMS} && \
+cp $TARGET.gz $PART/$packing/SOURCES && \
+rm -f completed && \
+rpmbuild -v \
+ --define "_topdir `pwd`/$PART/$packing" \
+ --define "scl $SCL" \
+ --define "scl_name_version $COLLVERSION" \
+ -ba $specdir/$specfile && \
+touch completed
+if ! test -f completed; then
+	echo FAIL
+else
+	echo PASS
+	cd $dn
+	echo the droids you seek may be:
+	find $PART -name '*.rpm'
+fi
