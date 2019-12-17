@@ -8,7 +8,7 @@ else
 	echo "assuming repo $repo.  If you want,"
 	echo "give an alternate full path to use; if existing it will be destroyed and recreated."
 fi
-rm -rf repo
+rm -rf $repo
 mkdir -p $repo
 find $PARTS -name '*.rpm' -exec cp {} $repo \;
 createrepo $repo
