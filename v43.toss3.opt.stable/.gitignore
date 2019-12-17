@@ -12,7 +12,6 @@ plist
 rlist
 sos
 *log
-*.spec
 *.tar
 *.gz
 firerpms.orig
