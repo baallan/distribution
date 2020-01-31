@@ -1,0 +1,36 @@
+diff --git a/configure.ac b/configure.ac
+index 6b3f795..f640cc4 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -61,6 +61,7 @@ OPTION_HOSTINFO
+ # define substitutions for configvars and other sed-generated files.
+ # note carefully the escapes.
+ OVIS_DO_SUBST([OVIS_SUBST_RULE], ["sed \
++-e 's,[[@]]VERSION[[@]],\$(VERSION),g' \
+ -e 's,[[@]]mandir[[@]],\$(mandir),g' \
+ -e 's,[[@]]localedir[[@]],\$(localedir),g' \
+ -e 's,[[@]]libdir[[@]],\$(libdir),g' \
+diff --git a/ldms/configure.ac b/ldms/configure.ac
+index be5de06..1822657 100644
+--- a/ldms/configure.ac
++++ b/ldms/configure.ac
+@@ -491,6 +491,7 @@ OPTION_HOSTINFO
+ # define substitutions for configvars and other sed-generated files.
+ # note carefully the escapes.
+ OVIS_DO_SUBST([LDMS_SUBST_RULE], ["sed \
++-e 's,[[@]]VERSION[[@]],\$(VERSION),g' \
+ -e 's,[[@]]mandir[[@]],\$(mandir),g' \
+ -e 's,[[@]]localedir[[@]],\$(localedir),g' \
+ -e 's,[[@]]libdir[[@]],\$(libdir),g' \
+diff --git a/lib/configure.ac b/lib/configure.ac
+index 80567dc..68f793c 100644
+--- a/lib/configure.ac
++++ b/lib/configure.ac
+@@ -188,6 +188,7 @@ AM_CONDITIONAL([HAVE_PYTHON], [test "$PYTHON" != :])
+ # define substitutions for configvars and other sed-generated files.
+ # note carefully the escapes.
+ OVIS_DO_SUBST([LIB_SUBST_RULE], ["sed \
++-e 's,[[@]]VERSION[[@]],\$(VERSION),g' \
+ -e 's,[[@]]mandir[[@]],\$(mandir),g' \
+ -e 's,[[@]]localedir[[@]],\$(localedir),g' \
+ -e 's,[[@]]libdir[[@]],\$(libdir),g' \
