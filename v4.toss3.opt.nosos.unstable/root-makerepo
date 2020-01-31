@@ -1,0 +1,21 @@
+#! /bin/bash
+
+PARTS="OVIS LDMS"
+if test -n "$1"; then
+	repo=$1
+else
+	repo=$(pwd)/sandia-nosos-ovis-repo
+	echo "assuming repo $repo.  If you want,"
+	echo "give an alternate full path to use; if existing it will be destroyed and recreated."
+fi
+rm -rf $repo
+mkdir -p $repo
+find $PARTS -name '*.rpm' -exec cp {} $repo \;
+createrepo $repo
+if test "x$USER" = xroot; then
+	chown -R root.root $repo
+	chmod go-w -R $repo
+else
+	echo "You are not root."
+	echo "The directory $repo may not work with yum until you run this with root privilege."
+fi
