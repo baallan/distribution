@@ -129,9 +129,7 @@ export CFLAGS="%{optflags} -O1 -g"
 --enable-meminfo \
 --enable-lustre \
 --enable-slurmtest \
---enable-filesingle \
---enable-munge \
---enable-fabric --with-libfabric=/usr
+--enable-filesingle
 
 make V=1 %{?_smp_mflags}
 
