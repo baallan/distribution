@@ -1,0 +1,26 @@
+diff --git a/ldms/src/store/Makefile.am b/ldms/src/store/Makefile.am
+index 7723177..9577ecf 100644
+--- a/ldms/src/store/Makefile.am
++++ b/ldms/src/store/Makefile.am
+@@ -6,7 +6,7 @@ AM_LDFLAGS = @OVIS_LIB_ABS@
+ #COMMON_LIBADD = -lldms @LDFLAGS_GETTIME@ -lovis_util -lcoll
+ AM_CPPFLAGS = $(DBGFLAGS) @OVIS_INCLUDE_ABS@
+ 
+-STORE_LIBADD = -lldms -lplugattr -lcoll -lovis_util
++STORE_LIBADD = -lldms -lldmsd_plugattr -lcoll -lovis_util
+ 
+ ldmsstoreincludedir = $(includedir)/ldms
+ ldmsstoreinclude_HEADERS = store_csv_common.h
+diff --git a/ldms/src/store/store_flatfile/Makefile.am b/ldms/src/store/store_flatfile/Makefile.am
+index c03df00..237e314 100644
+--- a/ldms/src/store/store_flatfile/Makefile.am
++++ b/ldms/src/store/store_flatfile/Makefile.am
+@@ -7,7 +7,7 @@ AM_LDFLAGS = @OVIS_LIB_ABS@
+ #COMMON_LIBADD = -lldms -lplugattr @LDFLAGS_GETTIME@ -lovis_util -lcoll
+ AM_CPPFLAGS = $(DBGFLAGS) @OVIS_INCLUDE_ABS@
+ 
+-STORE_LIBADD = -lldms -lplugattr -lcoll -lovis_util
++STORE_LIBADD = -lldms -lldmsd_plugattr -lcoll -lovis_util
+ 
+ ldmsstoreincludedir = $(includedir)/ldms
+ 
