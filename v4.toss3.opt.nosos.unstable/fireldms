@@ -51,7 +51,7 @@ cd ..
 
 
 cd $PART
-patches="clustersecrets_destdir ldms-systemd-identifer ldms-functions.in-add-ocn ldmsd_ctlargs ldmsctl_make plugattr_lib"
+patches="clustersecrets_destdir ldms-systemd-identifer ldms-functions.in-add-ocn ldmsd_ctlargs ldmsctl_make plugattr_lib filesingle_u ldms_i_patch"
 
 for i in $patches; do
 	patch -p1 < ../patches/$i
