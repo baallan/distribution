@@ -1,0 +1,122 @@
+diff --git a/util/sample_init_scripts/genders/man/ldms-attributes.man b/util/sample_init_scripts/genders/man/ldms-attributes.man
+index 1157101..7441abf 100644
+--- a/util/sample_init_scripts/genders/man/ldms-attributes.man
++++ b/util/sample_init_scripts/genders/man/ldms-attributes.man
+@@ -1,6 +1,6 @@
+ .\" Manpage for LDMS genders entries
+ .\" Contact ovis-help@ca.sandia.gov to correct errors or typos.
+-.TH man 5 "7 Feb 2017" "v3.5.0" "LDMSD libgenders-based attribute definitions"
++.TH man 5 "3 Feb 2019" "v4.3.3" "LDMSD libgenders-based attribute definitions"
+ 
+ .SH NAME
+ ldms-attributes - attributes for the LDMS libgenders-based boot scripts
+@@ -64,6 +64,8 @@ ldmsd_log=DEST          Defines where to send log output. This may be
+                         one of syslog, journal, NONE, or a directory
+                         name. If a name, the directory will be created
+                         and ldmsd.log.$LDMSCLUSTER is the file name.
++                        DEST may contain ${} environment variables for
++                        expansion.
+ ldmsd_vg=VGBIN          Defines the full path to an executable wrapper
+                         such as valgrind to be used for daemon launch.
+                         Note this may be any audit tool, not just valgrind.
+diff --git a/util/sample_init_scripts/genders/systemd/etc/sysconfig/ldms.d/Makefile.am b/util/sample_init_scripts/genders/systemd/etc/sysconfig/ldms.d/Makefile.am
+index 276a1c7..4d63f08 100644
+--- a/util/sample_init_scripts/genders/systemd/etc/sysconfig/ldms.d/Makefile.am
++++ b/util/sample_init_scripts/genders/systemd/etc/sysconfig/ldms.d/Makefile.am
+@@ -1,5 +1,8 @@
+ docdir = $(datadir)/doc/@PACKAGE@-@VERSION@/sample_init_scripts/genders/systemd/etc/sysconfig/ldms.d
+ 
++EXTRA_DIST = ldmsd.in ldms-functions.in
++DISTCLEANFILES = ldmsd ldms-functions
++
+ if ENABLE_TOSS_SYSTEMD
+ SUBDIRS = plugins-conf ClusterGenders ClusterSecrets debug
+ doc_DATA = \
+diff --git a/util/sample_init_scripts/genders/systemd/etc/sysconfig/ldms.d/ldms-functions.in b/util/sample_init_scripts/genders/systemd/etc/sysconfig/ldms.d/ldms-functions.in
+index 04662a6..bf94fc2 100644
+--- a/util/sample_init_scripts/genders/systemd/etc/sysconfig/ldms.d/ldms-functions.in
++++ b/util/sample_init_scripts/genders/systemd/etc/sysconfig/ldms.d/ldms-functions.in
+@@ -92,22 +92,53 @@ check_log_option () {
+ 
+ # check consistency of auth variables.
+ check_auth_option () {
+-	# auth file check and warning.
+-	if test -z $LDMS_AUTH_FILE; then
+-		echoq "LDMS_AUTH_FILE not set."
+-		echoq "Will try running without it (but this is a bad idea)"
+-		LDMS_AUTH_TYPE="ovis"
+-		LDMS_AUTH_OPT=""
+-	else
+-		LDMS_AUTH_TYPE="ovis"
+-		LDMS_AUTH_OPT="-a"
+-		if ! test -f $LDMS_AUTH_FILE; then
+-			echoq "LDMS_AUTH_FILE $LDMS_AUTH_FILE not found"
++	LDMS_AUTH_ARGS=""
++	case x$LDMS_AUTH_TYPE in
++        xovis)
++		# auth file check and warning.
++		if test -z $LDMS_AUTH_FILE; then
++			echoq "LDMS_AUTH_FILE not set."
++			echoq "Will try running without it (but this is a bad idea)"
++			LDMS_AUTH_OPT=""
++		else
++			LDMS_AUTH_OPT="-a"
++			if ! test -f $LDMS_AUTH_FILE; then
++				echoq "LDMS_AUTH_FILE $LDMS_AUTH_FILE not found"
++			fi
++			LDMS_AUTH_ARGS="conf=$LDMS_AUTH_FILE"
+ 		fi
+-	fi
++		;;
++	xmunge)
++		# auth munge socket check
++		if test -z $LDMS_AUTH_FILE; then
++			echoq "LDMS_AUTH_FILE not set."
++			echoq "assuming default munge socket"
++			LDMS_AUTH_OPT=""
++		else
++			LDMS_AUTH_OPT="-a"
++			if ! test -S $LDMS_AUTH_FILE; then
++				echoq "LDMS_AUTH_FILE $LDMS_AUTH_FILE is not a socket as needed by munge"
++			fi
++			LDMS_AUTH_ARGS="socket=$LDMS_AUTH_FILE"
++
++		fi
++		;;
++	xnaive)
++		logger -t $LTAG -p syslog.error -s "$0: LDMS_AUTH_TYPE naive is not supported for systemd service."
++		dietrace 1
++		;;
++	x*)
++		logger -t $LTAG -p syslog.error -s "$0: LDMS_AUTH_TYPE $LDMS_AUTH_TYPE is unknown"
++		dietrace 1
++		;;
++	x)
++		logger -t $LTAG -p syslog.error -s "$0: LDMS_AUTH_TYPE is undefined.
++		dietrace 1
++		;;
+ 	export LDMS_AUTH_TYPE
+ 	export LDMS_AUTH_OPT
+ 	export LDMS_AUTH_FILE
++	export LDMS_AUTH_ARGS
+ }
+ 
+ # check for migration errors v2 -> v3, common typos, etc
+diff --git a/util/sample_init_scripts/genders/systemd/etc/sysconfig/ldms.d/ldmsd.in b/util/sample_init_scripts/genders/systemd/etc/sysconfig/ldms.d/ldmsd.in
+index 08fa0ff..4bd71b8 100644
+--- a/util/sample_init_scripts/genders/systemd/etc/sysconfig/ldms.d/ldmsd.in
++++ b/util/sample_init_scripts/genders/systemd/etc/sysconfig/ldms.d/ldmsd.in
+@@ -325,9 +325,12 @@ export LDMSD_OFFSET_DEFAULT
+ # Note the LDMS_LOG_PATH may become a problem if
+ # on a shared file system that goes down and daemon debugging is enabled.
+ if test -z "$LDMS_LOG_PATH"; then
+-	LDMS_LOG_PATH=`$NODEATTR $NODEATTRFILE -v $host ldmsd_log 2>/dev/null`
++	LDMS_LOG_PATH=$($NODEATTR $NODEATTRFILE -v $host ldmsd_log 2>/dev/null)
+ 	if test -z "$LDMS_LOG_PATH"; then
+ 		LDMS_LOG_PATH=journal
++	else
++		# expand env variables in path, if any
++		LDMS_LOG_PATH=$(eval echo $LDMS_LOG_PATH)
+ 	fi
+ fi
+ export LDMS_LOG_PATH
