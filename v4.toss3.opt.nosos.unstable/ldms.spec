@@ -40,6 +40,7 @@ License: GPLv2 or BSD
 Group: %{ldms_all}
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Source: %{pkg_name}-%{version}.tar.gz
+Source1: ldms-plugins-llnl-1.5.tar.gz
 Requires: rpm >= 4.8.0
 BuildRequires: scl-utils-build
 Requires: python2
@@ -65,8 +66,7 @@ This package provides the LDMS commands and libraries, LDMS apis and transport l
 
 %prep
 %setup -q -n %{pkg_name}-%{version}
-
-%dump
+%setup -q -n ldms-plugins-llnl-1.5 -T -D -a 1
 
 %build
 echo bTMPPATH %{_tmppath}
@@ -174,6 +174,9 @@ mkdir -p -m 755 $RPM_BUILD_ROOT%{_localstatedir}/run/ldmsd
 mkdir -p -m 755 $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/ldms.d/ClusterGenders
 mkdir -p -m 755 $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/ldms.d/ClusterSecrets
 mkdir -p -m 755 $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/ldms.d/plugins-conf
+
+cd ../ldms-plugins-llnl-1.5
+
 
 %clean
 rm -rf $RPM_BUILD_ROOT

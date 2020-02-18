@@ -271,8 +271,13 @@ function pack_ck_rdma_cm {
 
 # genders init scripts check
 function pack_ck_genders {
-	pack_checkfiles /usr/bin/nodeattr /usr/include/gendersplusplus.hpp /usr/include/boost/program_options.hpp /usr/lib64/libboost_program_options.so /usr/include/boost/regex.hpp /usr/lib64/libboost_regex.so
-	x=$?
+	if test -z "$BOOST_ROOT"; then
+		pack_checkfiles /usr/bin/nodeattr /usr/include/gendersplusplus.hpp /usr/include/boost/program_options.hpp /usr/lib64/libboost_program_options.so /usr/include/boost/regex.hpp /usr/lib64/libboost_regex.so
+		x=$?
+	else
+		pack_checkfiles /usr/bin/nodeattr /usr/include/gendersplusplus.hpp $BOOST_INC/boost/program_options.hpp $BOOST_LIB/libboost_program_options.so $BOOST_INC/boost/regex.hpp $BOOST_LIB/libboost_regex.so
+		x=$?
+	fi
 	if test "$x" != "0"; then
 		echo missing one or more of packages genders libgenders libgenders-devel libgendersplusplus boost-devel
 	fi
