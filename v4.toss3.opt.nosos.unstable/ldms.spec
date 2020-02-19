@@ -40,13 +40,13 @@ License: GPLv2 or BSD
 Group: %{ldms_all}
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Source: %{pkg_name}-%{version}.tar.gz
-Source1: ldms-plugins-llnl-1.5.tar.gz
 Requires: rpm >= 4.8.0
 BuildRequires: scl-utils-build
 Requires: python2
 Requires: python2-devel
 Requires: openssl
 Requires: genders
+Requires: papi libpfm
 BuildRequires: gettext-devel gcc glib2-devel
 BuildRequires: doxygen
 BuildRequires: openssl-devel
@@ -55,6 +55,7 @@ BuildRequires: librdmacm-devel
 BuildRequires: python2 python2-devel
 BuildRequires: swig
 BuildRequires: boost-devel
+BuildRequires: papi-devel papi
 BuildRequires: genders
 BuildRequires: bison bison-devel flex flex-devel
 BuildRequires: librabbitmq librabbitmq-devel
@@ -66,7 +67,6 @@ This package provides the LDMS commands and libraries, LDMS apis and transport l
 
 %prep
 %setup -q -n %{pkg_name}-%{version}
-%setup -q -n ldms-plugins-llnl-1.5 -T -D -a 1
 
 %build
 echo bTMPPATH %{_tmppath}
@@ -130,8 +130,9 @@ export CFLAGS="%{optflags} -O1 -g"
 --enable-lustre \
 --enable-slurmtest \
 --enable-filesingle \
+--enable-syspapi-sampler \
 --enable-munge \
---enable-ldms-plugins-llnl \
+--enable-third-plugins=ldms-plugins-llnl \
 --enable-fabric --with-libfabric=/usr
 
 make V=1 %{?_smp_mflags}
@@ -175,9 +176,6 @@ mkdir -p -m 755 $RPM_BUILD_ROOT%{_localstatedir}/run/ldmsd
 mkdir -p -m 755 $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/ldms.d/ClusterGenders
 mkdir -p -m 755 $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/ldms.d/ClusterSecrets
 mkdir -p -m 755 $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/ldms.d/plugins-conf
-
-cd ../ldms-plugins-llnl-1.5
-
 
 %clean
 rm -rf $RPM_BUILD_ROOT
