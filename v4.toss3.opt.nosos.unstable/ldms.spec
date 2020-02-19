@@ -35,7 +35,7 @@
 Summary: OVIS Commands and Libraries
 Name: %{?scl_prefix}ovis-ldms
 Version: %{scl_name_version}
-Release: 1.0%{?dist}
+Release: 1.1%{?dist}
 License: GPLv2 or BSD
 Group: %{ldms_all}
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
@@ -114,7 +114,7 @@ export CFLAGS="%{optflags} -O1 -g"
 --enable-dstat \
 --enable-llnl-edac \
 --disable-sysclassib \
---disable-opa2 \
+--enable-opa2 \
 --disable-influx \
 --enable-jobinfo \
 --enable-perf \
@@ -131,6 +131,7 @@ export CFLAGS="%{optflags} -O1 -g"
 --enable-slurmtest \
 --enable-filesingle \
 --enable-munge \
+--enable-ldms-plugins-llnl \
 --enable-fabric --with-libfabric=/usr
 
 make V=1 %{?_smp_mflags}
