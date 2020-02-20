@@ -46,7 +46,7 @@ Requires: python2
 Requires: python2-devel
 Requires: openssl
 Requires: genders
-Requires: papi libpfm
+#Requires: papi libpfm
 BuildRequires: gettext-devel gcc glib2-devel
 BuildRequires: doxygen
 BuildRequires: openssl-devel
@@ -55,7 +55,7 @@ BuildRequires: librdmacm-devel
 BuildRequires: python2 python2-devel
 BuildRequires: swig
 BuildRequires: boost-devel
-BuildRequires: papi-devel papi
+#BuildRequires: papi-devel papi
 BuildRequires: genders
 BuildRequires: bison bison-devel flex flex-devel
 BuildRequires: librabbitmq librabbitmq-devel
@@ -130,9 +130,9 @@ export CFLAGS="%{optflags} -O1 -g"
 --enable-lustre \
 --enable-slurmtest \
 --enable-filesingle \
---enable-syspapi-sampler \
+--disable-syspapi-sampler \
 --enable-munge \
---enable-third-plugins=ldms-plugins-llnl \
+--enable-third-plugins=ldms-plugins-llnl,my_plugin \
 --enable-fabric --with-libfabric=/usr
 
 make V=1 %{?_smp_mflags}
