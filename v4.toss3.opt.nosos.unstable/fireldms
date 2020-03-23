@@ -6,7 +6,8 @@ export COLLVERSION=$(cat ./ovisversion)
 SCL=sandia-nosos-ovis_${COLLVERSION}
 packing=v4.toss3.opt.nosos.unstable
 PART=LDMS
-ovis_branch=llnl-samplers
+#ovis_branch=llnl-samplers
+ovis_branch=v4-ovis-papi
 NetworkRequires=github.com
 OVISREPO=https://github.com/baallan/ovis.git
 
@@ -18,7 +19,7 @@ fi
 # config flags to use in prechecking only.
 # assumes similarity to ldms.spec; changes here are not
 # propagated to the spec file.
-check_configure_args="--disable-static --with-pkglibdir=ovis-ldms --enable-ovis_auth --enable-ssl --enable-ovis_event --enable-zap --enable-sock --enable-rdma --disable-mmap --enable-swig --disable-readline --enable-ldms-python --enable-python --enable-libgenders --enable-genderssystemd --disable-sos --enable-flatfile --enable-csv --enable-store --disable-rabbitv3 --enable-rabbitkw --disable-kokkos --disable-cray_power_sampler --disable-cray_system_sampler --disable-aries-gpcdr --disable-gpcdlocal --disable-aries-mmr --disable-ugni --disable-perfevent --disable-papi --disable-procdiskstats --disable-atasmart --disable-hadoop --disable-generic_sampler --disable-switchx --disable-sensors --enable-dstat --enable-llnl-edac --disable-sysclassib --enable-opa2 --enable-jobinfo --enable-perf --enable-jobid --enable-array_example --enable-procinterrupts --enable-procnetdev --enable-procnfs --enable-procsensors --enable-procstat --enable-vmstat --enable-meminfo --enable-lustre --enable-slurmtest --enable-filesingle --enable-munge --enable-fabric --with-libfabric=/usr --with-boost=/usr --enable-third-plugins=ldms-plugins-llnl,my_plugin"
+check_configure_args="--disable-static --with-pkglibdir=ovis-ldms --enable-ovis_auth --enable-ssl --enable-ovis_event --enable-zap --enable-sock --enable-rdma --disable-mmap --enable-swig --disable-readline --enable-ldms-python --enable-python --enable-libgenders --enable-genderssystemd --disable-sos --enable-flatfile --enable-csv --enable-store --disable-rabbitv3 --enable-rabbitkw --disable-kokkos --disable-cray_power_sampler --disable-cray_system_sampler --disable-aries-gpcdr --disable-gpcdlocal --disable-aries-mmr --disable-ugni --disable-perfevent --disable-papi --disable-procdiskstats --disable-atasmart --disable-hadoop --disable-generic_sampler --disable-switchx --disable-sensors --enable-dstat --enable-llnl-edac --disable-sysclassib --enable-opa2 --enable-jobinfo --enable-perf --enable-jobid --enable-array_example --enable-procinterrupts --enable-procnetdev --enable-procnfs --enable-procsensors --enable-procstat --enable-vmstat --enable-meminfo --enable-lustre --enable-slurmtest --enable-filesingle --enable-munge --enable-fabric --with-libfabric=/usr --with-boost=/usr --enable-third-plugins=ldms-plugins-llnl,my_plugin --enable-syspapi-sampler"
 
 if ! pack_prechecks "$check_configure_args"; then
 	echo "Check dependencies listed above, install needed packages, and try again"
@@ -110,10 +111,11 @@ mkdir -p $PART/$packing/{BUILD,RPMS,SOURCES,SPECS,SRPMS} && \
 cp $TARGET.gz $PART/$packing/SOURCES && \
 rm -f completed && \
 echo "rpmbuild============================"
-rpmbuild -v \
+rpmbuild -vv \
  --define "_topdir `pwd`/$PART/$packing" \
  --define "scl $SCL" \
  --define "scl_name_version $COLLVERSION" \
+ --noclean \
  -ba $specdir/$specfile && \
 touch completed
 if ! test -f completed; then

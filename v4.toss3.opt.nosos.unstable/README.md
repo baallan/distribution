@@ -17,7 +17,21 @@ and then install the resulting:
 sandia-nosos-ovis-ldms_4.3.3-runtime
 ```
 
+./firepapi
+and then install
+```
+sandia-nosos-ovis_ldms_4.3.3-ovis-papi
+sandia-nosos-ovis_ldms_4.3.3-ovis-papi-devel
+```
+
 ./fireldms
+and then install at least
+```
+sandia-nosos-ovis_ldms_4.3.3-ovis-ldms
+sandia-nosos-ovis_ldms_4.3.3-ovis-ldms-devel
+```
+
+./firellnllustre  
 
 # Installation:
 
@@ -27,7 +41,7 @@ to install convenience package:
 ```
 sandia-nosos-ovis-ldms_4.3.3
 with
-yum install sandia-nosos-ovis-ldms_4.3.3
+yum install sandia-nosos-ovis-ldms_4.3.3 sandia-nosos-ovis_ldms_4.3.3-llnl-lustre
 ```
 
 You can create an RPM repo from the files created by fire\*
@@ -84,3 +98,4 @@ Dependencies:
 	openssl openssl-devel
 	python2 python2-devel
 	swig
+	lustre 2

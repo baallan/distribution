@@ -1,6 +1,8 @@
 sandia-nosos-ovis-repo
 list.*
 deps.*
+PAPI
+LLNLLUSTRE
 CYTHON
 LDMS
 NUMPY

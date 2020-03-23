@@ -11,7 +11,7 @@
 %global _scl_prefix /opt/ovis
 %{!?scl:%global pkg_name %{name}}
 %global scl_name_prefix sandia-nosos-
-%global scl_name_base ovis-ldms_
+%global scl_name_base ovis_ldms_
 %global scl_name_version 4.3.3
 %global scl %{scl_name_prefix}%{scl_name_base}%{scl_name_version}
 %global nfsmountable 1
@@ -39,14 +39,14 @@ Release: 1.1%{?dist}
 License: GPLv2 or BSD
 Group: %{ldms_all}
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-Source: %{pkg_name}-%{version}.tar.gz
+Source0: %{pkg_name}-%{version}.tar.gz
 Requires: rpm >= 4.8.0
 BuildRequires: scl-utils-build
 Requires: python2
 Requires: python2-devel
 Requires: openssl
 Requires: genders
-#Requires: papi libpfm
+Requires: %{?scl_prefix}ovis-papi = %{scl_name_version}
 BuildRequires: gettext-devel gcc glib2-devel
 BuildRequires: doxygen
 BuildRequires: openssl-devel
@@ -55,10 +55,10 @@ BuildRequires: librdmacm-devel
 BuildRequires: python2 python2-devel
 BuildRequires: swig
 BuildRequires: boost-devel
-#BuildRequires: papi-devel papi
 BuildRequires: genders
 BuildRequires: bison bison-devel flex flex-devel
 BuildRequires: librabbitmq librabbitmq-devel
+Requires: %{?scl_prefix}ovis-papi-devel = %{scl_name_version}
 %{?scl:Requires: %scl_runtime}
 Url: https://github.com/ovis-hpc/ovis
 
@@ -73,6 +73,7 @@ echo bTMPPATH %{_tmppath}
 rm -rf $RPM_BUILD_ROOT
 echo bBUILDROOT $RPM_BUILD_ROOT
 export CFLAGS="%{optflags} -O1 -g"
+
 %configure --prefix=%{?scl_prefix:%_scl_root}/usr \
 --with-boost=/usr \
 --disable-static \
@@ -130,15 +131,19 @@ export CFLAGS="%{optflags} -O1 -g"
 --enable-lustre \
 --enable-slurmtest \
 --enable-filesingle \
---disable-syspapi-sampler \
---enable-munge \
+--enable-syspapi-sampler \
+--with-papi=--prefix=%{?scl_prefix:%_scl_root}/usr/lib64/ovis-ldms/papi-6.0.0 \
+--disable-munge \
 --enable-third-plugins=ldms-plugins-llnl,my_plugin \
 --enable-fabric --with-libfabric=/usr
 
 make V=1 %{?_smp_mflags}
 
 
+
 %install
+# ugly hack to get around rm RPM_BUILD_ROOT
+(cd $RPM_BUILD_ROOT/.. ; tar zxf /tmp/keep-buildroot.tgz)
 echo TMPPATH %{_tmppath}
 echo BUILDROOT $RPM_BUILD_ROOT
 make DESTDIR=${RPM_BUILD_ROOT} V=1 install
@@ -176,6 +181,7 @@ mkdir -p -m 755 $RPM_BUILD_ROOT%{_localstatedir}/run/ldmsd
 mkdir -p -m 755 $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/ldms.d/ClusterGenders
 mkdir -p -m 755 $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/ldms.d/ClusterSecrets
 mkdir -p -m 755 $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/ldms.d/plugins-conf
+
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -321,7 +327,8 @@ Summary: Python files for LDMS
 %description python2
 Python files for ovis
 # install needs
-Requires: %{?scl_prefix}ovis-ldms >= 3.0.0 python
+Requires: python
+Requires: %{?scl_prefix}ovis-ldms = %{scl_name_version}
 # build needs
 BuildRequires: python
 BuildRequires: python python-devel swig
