@@ -1,5 +1,5 @@
 %global scl_name_prefix sandia-nosos-
-%global scl_name_base ovis-ldms_
+%global scl_name_base ovis_ldms_
 %global scl_name_version 4.3.3
 %global scl %{scl_name_prefix}%{scl_name_base}%{scl_name_version}
 
@@ -12,11 +12,12 @@
 Summary: Package that installs %scl
 Name: %scl_name
 Version: 1
-Release: 1%{?dist}
+Release: 1.1%{?dist}
 License: GPLv2+
-Requires: %{scl_prefix}ovis
-Requires: %{scl_prefix}ovis-initscripts-base
-Requires: %{scl_prefix}ovis-initscripts-systemd
+Requires: %{scl_prefix}ovis-papi
+Requires: %{scl_prefix}ovis-ldms
+Requires: %{scl_prefix}ovis-ldms-initscripts-base
+Requires: %{scl_prefix}ovis-ldms-initscripts-systemd
 
 BuildRequires: scl-utils-build
 
