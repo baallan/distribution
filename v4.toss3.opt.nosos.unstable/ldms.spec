@@ -131,19 +131,15 @@ export CFLAGS="%{optflags} -O1 -g"
 --enable-lustre \
 --enable-slurmtest \
 --enable-filesingle \
+--enable-munge \
 --enable-syspapi-sampler \
 --with-papi=--prefix=%{?scl_prefix:%_scl_root}/usr/lib64/ovis-ldms/papi-6.0.0 \
---disable-munge \
---enable-third-plugins=ldms-plugins-llnl,my_plugin \
 --enable-fabric --with-libfabric=/usr
 
 make V=1 %{?_smp_mflags}
 
 
-
 %install
-# ugly hack to get around rm RPM_BUILD_ROOT
-(cd $RPM_BUILD_ROOT/.. ; tar zxf /tmp/keep-buildroot.tgz)
 echo TMPPATH %{_tmppath}
 echo BUILDROOT $RPM_BUILD_ROOT
 make DESTDIR=${RPM_BUILD_ROOT} V=1 install
@@ -181,7 +177,6 @@ mkdir -p -m 755 $RPM_BUILD_ROOT%{_localstatedir}/run/ldmsd
 mkdir -p -m 755 $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/ldms.d/ClusterGenders
 mkdir -p -m 755 $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/ldms.d/ClusterSecrets
 mkdir -p -m 755 $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/ldms.d/plugins-conf
-
 
 %clean
 rm -rf $RPM_BUILD_ROOT

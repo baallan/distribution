@@ -12,11 +12,12 @@
 Summary: Package that installs %scl
 Name: %scl_name
 Version: 1
-Release: 1%{?dist}
+Release: 1.1%{?dist}
 License: GPLv2+
-Requires: %{scl_prefix}ovis
-Requires: %{scl_prefix}ovis-initscripts-base
-Requires: %{scl_prefix}ovis-initscripts-systemd
+Requires: %{scl_prefix}ovis-papi
+Requires: %{scl_prefix}ovis-ldms
+Requires: %{scl_prefix}ovis-ldms-initscripts-base
+Requires: %{scl_prefix}ovis-ldms-initscripts-systemd
 
 BuildRequires: scl-utils-build
 

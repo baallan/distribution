@@ -35,13 +35,14 @@
 Summary: OVIS Commands and Libraries
 Name: %{?scl_prefix}ovis-ldms
 Version: %{scl_name_version}
-Release: 1.0%{?dist}
+Release: 1.1%{?dist}
 License: GPLv2 or BSD
 Group: %{ldms_all}
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Source: %{pkg_name}-%{version}.tar.gz
 Requires: rpm >= 4.8.0
 BuildRequires: scl-utils-build
+Requires: %{?scl_prefix}ovis-papi = %{scl_name_version}
 Requires: python2
 Requires: python2-devel
 Requires: openssl
@@ -62,6 +63,7 @@ BuildRequires: bison bison-devel flex flex-devel
 BuildRequires: librabbitmq librabbitmq-devel
 BuildRequires: libfabric-devel
 BuildRequires: munge-devel munge-libs
+Requires: %{?scl_prefix}ovis-papi-devel = %{scl_name_version}
 %{?scl:Requires: %scl_runtime}
 Url: https://github.com/ovis-hpc/ovis
 
@@ -71,13 +73,12 @@ This package provides the LDMS commands and libraries, LDMS apis and transport l
 %prep
 %setup -q -n %{pkg_name}-%{version}
 
-%dump
-
 %build
 echo bTMPPATH %{_tmppath}
 rm -rf $RPM_BUILD_ROOT
 echo bBUILDROOT $RPM_BUILD_ROOT
 export CFLAGS="%{optflags} -O1 -g"
+
 %configure --prefix=%{?scl_prefix:%_scl_root}/usr \
 --with-boost=/usr \
 --disable-static \
@@ -136,6 +137,8 @@ export CFLAGS="%{optflags} -O1 -g"
 --enable-slurmtest \
 --enable-filesingle \
 --enable-munge \
+--enable-syspapi-sampler \
+--with-papi=--prefix=%{?scl_prefix:%_scl_root}/usr/lib64/ovis-ldms/papi-6.0.0 \
 --enable-fabric --with-libfabric=/usr
 
 make V=1 %{?_smp_mflags}
@@ -324,7 +327,8 @@ Summary: Python files for LDMS
 %description python2
 Python files for ovis
 # install needs
-Requires: %{?scl_prefix}ovis-ldms >= 3.0.0 python
+Requires: python
+Requires: %{?scl_prefix}ovis-ldms = %{scl_name_version}
 # build needs
 BuildRequires: python
 BuildRequires: python python-devel swig

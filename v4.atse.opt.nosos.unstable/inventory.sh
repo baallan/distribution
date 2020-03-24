@@ -1,7 +1,7 @@
 # this dumps the file lists and dependency lists
 # for the generated rpms
 x=$(basename $(pwd))
-PARTS="LDMS OVIS"
+PARTS="LDMS OVIS PAPI LLNLLUSTRE"
 for p in $PARTS; do
 	for r in $(find $p -name '*.rpm') ; do
 		echo $r;
