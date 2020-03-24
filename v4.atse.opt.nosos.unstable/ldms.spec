@@ -11,7 +11,7 @@
 %global _scl_prefix /opt/ovis
 %{!?scl:%global pkg_name %{name}}
 %global scl_name_prefix sandia-nosos-
-%global scl_name_base ovis-ldms_
+%global scl_name_base ovis_ldms_
 %global scl_name_version 4.3.3
 %global scl %{scl_name_prefix}%{scl_name_base}%{scl_name_version}
 %global nfsmountable 1
@@ -47,6 +47,8 @@ Requires: python2-devel
 Requires: openssl
 Requires: genders
 Requires: boost
+Requires: libfabric
+Requires: munge-libs
 BuildRequires: boost-devel boost
 BuildRequires: gettext-devel gcc glib2-devel
 BuildRequires: doxygen
@@ -58,6 +60,8 @@ BuildRequires: swig
 BuildRequires: genders
 BuildRequires: bison bison-devel flex flex-devel
 BuildRequires: librabbitmq librabbitmq-devel
+BuildRequires: libfabric-devel
+BuildRequires: munge-devel munge-libs
 %{?scl:Requires: %scl_runtime}
 Url: https://github.com/ovis-hpc/ovis
 

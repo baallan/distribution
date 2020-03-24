@@ -1,5 +1,5 @@
 %global scl_name_prefix sandia-nosos-
-%global scl_name_base ovis-ldms_
+%global scl_name_base ovis_ldms_
 %global scl_name_version 4.3.3
 %global scl %{scl_name_prefix}%{scl_name_base}%{scl_name_version}
 
