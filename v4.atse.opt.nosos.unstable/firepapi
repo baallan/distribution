@@ -4,7 +4,7 @@
 export PYVERSION=$(cat ./ovispyversion)
 export COLLVERSION=$(cat ./ovisversion)
 SCL=sandia-nosos-ovis_${COLLVERSION}
-packing=v4.toss3.opt.nosos.unstable
+packing=v4.atse.opt.nosos.unstable
 PART=PAPI
 papiver=papi-6.0.0
 papitar=${papiver}.tar.gz
