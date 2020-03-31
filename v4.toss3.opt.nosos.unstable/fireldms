@@ -6,8 +6,7 @@ export COLLVERSION=$(cat ./ovisversion)
 SCL=sandia-nosos-ovis_${COLLVERSION}
 packing=v4.toss3.opt.nosos.unstable
 PART=LDMS
-#ovis_branch=llnl-samplers
-ovis_branch=v4-ovis-papi
+ovis_branch=munge_genders_v4
 NetworkRequires=github.com
 OVISREPO=https://github.com/baallan/ovis.git
 

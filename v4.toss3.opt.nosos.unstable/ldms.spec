@@ -39,14 +39,18 @@ Release: 1.1%{?dist}
 License: GPLv2 or BSD
 Group: %{ldms_all}
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-Source0: %{pkg_name}-%{version}.tar.gz
+Source: %{pkg_name}-%{version}.tar.gz
 Requires: rpm >= 4.8.0
 BuildRequires: scl-utils-build
+Requires: %{?scl_prefix}ovis-papi = %{scl_name_version}
 Requires: python2
 Requires: python2-devel
 Requires: openssl
 Requires: genders
-Requires: %{?scl_prefix}ovis-papi = %{scl_name_version}
+Requires: boost
+Requires: libfabric
+Requires: munge-libs
+BuildRequires: boost-devel boost
 BuildRequires: gettext-devel gcc glib2-devel
 BuildRequires: doxygen
 BuildRequires: openssl-devel
@@ -54,10 +58,11 @@ BuildRequires: libibverbs-devel
 BuildRequires: librdmacm-devel
 BuildRequires: python2 python2-devel
 BuildRequires: swig
-BuildRequires: boost-devel
 BuildRequires: genders
 BuildRequires: bison bison-devel flex flex-devel
 BuildRequires: librabbitmq librabbitmq-devel
+BuildRequires: libfabric-devel
+BuildRequires: munge-devel munge-libs
 Requires: %{?scl_prefix}ovis-papi-devel = %{scl_name_version}
 %{?scl:Requires: %scl_runtime}
 Url: https://github.com/ovis-hpc/ovis
