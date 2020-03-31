@@ -133,7 +133,7 @@ export CFLAGS="%{optflags} -O1 -g"
 --enable-filesingle \
 --enable-munge \
 --enable-syspapi-sampler \
---with-papi=--prefix=%{?scl_prefix:%_scl_root}/usr/lib64/ovis-ldms/papi-6.0.0 \
+--with-libpapi=%{?scl_prefix:%_scl_root}/usr/lib64/ovis-ldms/papi-6.0.0 \
 --enable-fabric --with-libfabric=/usr
 
 make V=1 %{?_smp_mflags}
