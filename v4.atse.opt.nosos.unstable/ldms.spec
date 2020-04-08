@@ -12,7 +12,7 @@
 %{!?scl:%global pkg_name %{name}}
 %global scl_name_prefix sandia-nosos-
 %global scl_name_base ovis_ldms_
-%global scl_name_version 4.3.3
+%global scl_name_version 4.3.4
 %global scl %{scl_name_prefix}%{scl_name_base}%{scl_name_version}
 %global nfsmountable 1
 %{?scl:%scl_package %{srcname} }
@@ -342,5 +342,7 @@ BuildRequires: python python-devel swig
 # and https://fedoraproject.org/wiki/Packaging:Python
 
 %changelog
+* Tue Apr 7 2020 Ben Allan <baallan@sandia.gov> 4.3.4-1
+Create 4.3.4 software collection.
 * Mon Dec 9 2019 Ben Allan <baallan@sandia.gov> 4.3.1-1
 Create 4.3.3 software collection.
