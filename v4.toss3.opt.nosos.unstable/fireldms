@@ -51,12 +51,18 @@ cd ..
 
 
 cd $PART
-patches="ldms-systemd-identifer ldms-functions.in-add-ocn"
-
+patches="ldms-systemd-identifer ldms-functions.in-add-ocn v4_loadavg.patch"
 for i in $patches; do
-	patch -p1 < ../patches/$i
+	# patch -p1 < ../patches/$i
+	git apply ../patches/$i
 	git commit -a -m "add $packing distribution patches: $i"
 done
+newfiles=ldms/src/sampler/loadavg
+if test -n "$newfiles"; then
+	git add $newfiles
+	git commit -a -m "add $packing distribution files: $newfilest"
+fi
+
 VERSION=$(pack_get_ac_version configure.ac)
 PACKAGE=$(pack_get_ac_name configure.ac)
 # Find SHA of latest checkin someone tagged
