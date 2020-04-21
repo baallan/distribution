@@ -1,0 +1,130 @@
+#!/bin/bash
+#
+#
+export PYVERSION=$(cat ./ovispyversion)
+export COLLVERSION=$(cat ./ovisversion)
+
+packing=v4.toss3.nosos.unstable
+PART=LDMS
+ovis_branch=munge_genders_v4
+NetworkRequires=github.com
+OVISREPO=https://github.com/baallan/ovis.git
+
+if test -n "$MODULEPATH"; then
+	module purge
+fi
+. ../support/package-functions
+
+# config flags to use in prechecking only.
+# assumes similarity to ldms.spec; changes here are not
+# propagated to the spec file.
+check_configure_args="--disable-static --with-pkglibdir=ovis-ldms --enable-ovis_auth --enable-ssl --enable-ovis_event --enable-zap --enable-sock --enable-rdma --disable-mmap --enable-swig --disable-readline --enable-ldms-python --enable-python --disable-libgenders --disable-genderssystemd --disable-sos --enable-flatfile --enable-csv --enable-store --disable-rabbitv3 --enable-rabbitkw --disable-kokkos --disable-cray_power_sampler --disable-cray_system_sampler --disable-aries-gpcdr --disable-gpcdlocal --disable-aries-mmr --disable-ugni --disable-perfevent --disable-papi --disable-procdiskstats --disable-atasmart --disable-hadoop --disable-generic_sampler --disable-switchx --disable-sensors --enable-dstat --enable-llnl-edac --disable-sysclassib --enable-opa2 --enable-jobinfo --enable-perf --enable-jobid --enable-array_example --enable-procinterrupts --enable-procnetdev --enable-procnfs --enable-procsensors --enable-procstat --enable-vmstat --enable-meminfo --enable-lustre --enable-slurmtest --enable-filesingle --enable-munge --enable-fabric --with-libfabric=/usr --with-boost=/usr --enable-syspapi-sampler"
+
+if ! pack_prechecks "$check_configure_args"; then
+	echo "Check dependencies listed above, install needed packages, and try again"
+	exit 1
+fi
+
+dn=$(pwd)
+specdir=$dn
+bn=$(basename $dn)
+specfile=ldms.spec
+if test "$bn" = "$packing" -a -f $specfile; then
+	: in the right place
+else
+	echo This must be run from $packing, which should be clean and at any rate will be overwritten.
+	exit 1
+fi
+
+/bin/rm -rf LDMS
+if ! git clone $OVISREPO $PART; then
+	echo cannot checkout ovis.
+	exit 1
+fi
+
+cd $PART
+if ! git checkout $ovis_branch; then
+	echo cannot checkout ovis branch $ovis_branch.
+	exit 1
+fi
+cd ..
+
+
+cd $PART
+patches=""
+for i in $patches; do
+	# patch -p1 < ../patches/$i
+	git apply ../patches/$i
+	git commit -a -m "add $packing distribution patches: $i"
+done
+newfiles=ldms/src/sampler/loadavg
+if test -n "$newfiles"; then
+	git add $newfiles
+	git commit -a -m "add $packing distribution files: $newfilest"
+fi
+
+VERSION=$(pack_get_ac_version configure.ac)
+PACKAGE=$(pack_get_ac_name configure.ac)
+# Find SHA of latest checkin someone tagged
+set -x
+COMMIT_ID="$(git log -1 --pretty="%H")"
+BASE_COMMIT_ID="$(git rev-parse $ovis_branch)"
+# Get most recent tag id for this branch
+#TAG_ID="$(git describe --tags --abbrev=0)"
+set +x
+TARGET=${PACKAGE}-${VERSION}.tar
+REPO_DIR=`pwd`
+OUTPUT_DIR=`pwd`/Tars
+# Create output dir
+mkdir -p $OUTPUT_DIR
+# populate outdir inputs
+git archive --prefix=${PACKAGE=}-${VERSION}/ $COMMIT_ID --format=tar --output=${OUTPUT_DIR}/$TARGET
+cd ..
+
+sleep 0.1
+
+cd $OUTPUT_DIR
+
+# Untar archive
+echo "Untarring archive"
+tar xf $TARGET && \
+(cd ${PACKAGE}-${VERSION} && \
+./autogen.sh)
+if ! test -f ${PACKAGE}-${VERSION}/configure; then
+	echo "unable to generate $PART build files"
+	exit 1
+fi
+
+# Tar back up excluding unwanted files and dirs
+echo "tarring archive with excludes from "
+echo "$REPO_DIR/util/tar-excludes.txt"
+TAR_OPTS="-X $REPO_DIR/util/tar-excludes.txt"
+tar czf $TARGET.gz $TAR_OPTS ${PACKAGE}-${VERSION}
+
+echo "Relocating cruft"
+rm -rf old
+mkdir old
+mv -f ${PACKAGE}-${VERSION} $TARGET old
+
+tar zxf $TARGET.gz && \
+cd ${PACKAGE}-${VERSION} && \
+echo "================ configure for $packing rpms =============" && \
+./configure CC=gcc CXX=g++ $allconfig && \
+echo "============================= make $packing rpms =============" && \
+make dist-gzip && \
+mkdir -p $PART/$packing/{BUILD,RPMS,SOURCES,SPECS,SRPMS} && \
+cp $TARGET.gz $PART/$packing/SOURCES && \
+rm -f completed && \
+echo "rpmbuild============================"
+rpmbuild -v \
+ --define "_topdir `pwd`/$PART/$packing" \
+ -ba $specdir/$specfile && \
+touch completed
+if ! test -f completed; then
+	echo FAIL
+else
+	echo PASS
+	cd $dn
+	echo the droids you seek may be:
+	find $PART -name '*.rpm'
+fi
