@@ -58,6 +58,7 @@ BuildRequires: libibverbs-devel
 BuildRequires: librdmacm-devel
 BuildRequires: python2 python2-devel
 BuildRequires: swig
+BuildRequires: boost-devel
 BuildRequires: genders
 BuildRequires: bison bison-devel flex flex-devel
 BuildRequires: librabbitmq librabbitmq-devel
