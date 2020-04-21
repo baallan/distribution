@@ -12,7 +12,7 @@
 %{!?scl:%global pkg_name %{name}}
 %global scl_name_prefix sandia-nosos-
 %global scl_name_base ovis_ldms_
-%global scl_name_version 4.3.3
+%global scl_name_version 4.3.4
 %global scl %{scl_name_prefix}%{scl_name_base}%{scl_name_version}
 %global nfsmountable 1
 %{?scl:%scl_package %{srcname} }
@@ -35,17 +35,22 @@
 Summary: OVIS Commands and Libraries
 Name: %{?scl_prefix}ovis-ldms
 Version: %{scl_name_version}
-Release: 1.0%{?dist}
+Release: 1.2%{?dist}
 License: GPLv2 or BSD
 Group: %{ldms_all}
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Source: %{pkg_name}-%{version}.tar.gz
 Requires: rpm >= 4.8.0
 BuildRequires: scl-utils-build
+Requires: %{?scl_prefix}ovis-papi = %{scl_name_version}
 Requires: python2
 Requires: python2-devel
 Requires: openssl
 Requires: genders
+Requires: boost
+Requires: libfabric
+Requires: munge-libs
+BuildRequires: boost-devel boost
 BuildRequires: gettext-devel gcc glib2-devel
 BuildRequires: doxygen
 BuildRequires: openssl-devel
@@ -57,6 +62,9 @@ BuildRequires: boost-devel
 BuildRequires: genders
 BuildRequires: bison bison-devel flex flex-devel
 BuildRequires: librabbitmq librabbitmq-devel
+BuildRequires: libfabric-devel
+BuildRequires: munge-devel munge-libs
+Requires: %{?scl_prefix}ovis-papi-devel = %{scl_name_version}
 %{?scl:Requires: %scl_runtime}
 Url: https://github.com/ovis-hpc/ovis
 
@@ -65,8 +73,6 @@ This package provides the LDMS commands and libraries, LDMS apis and transport l
 
 %prep
 %setup -q -n %{pkg_name}-%{version}
-
-%dump
 
 %build
 echo bTMPPATH %{_tmppath}
@@ -114,7 +120,7 @@ export CFLAGS="%{optflags} -O1 -g"
 --enable-dstat \
 --enable-llnl-edac \
 --disable-sysclassib \
---disable-opa2 \
+--enable-opa2 \
 --disable-influx \
 --enable-jobinfo \
 --enable-perf \
@@ -129,7 +135,11 @@ export CFLAGS="%{optflags} -O1 -g"
 --enable-meminfo \
 --enable-lustre \
 --enable-slurmtest \
---enable-filesingle
+--enable-filesingle \
+--enable-munge \
+--enable-syspapi-sampler \
+--with-libpapi=%{?scl_prefix:%_scl_root}/usr/lib64/ovis-ldms/papi-6.0.0 \
+--enable-fabric --with-libfabric=/usr
 
 make V=1 %{?_smp_mflags}
 
@@ -317,7 +327,8 @@ Summary: Python files for LDMS
 %description python2
 Python files for ovis
 # install needs
-Requires: %{?scl_prefix}ovis-ldms >= 3.0.0 python
+Requires: python
+Requires: %{?scl_prefix}ovis-ldms = %{scl_name_version}
 # build needs
 BuildRequires: python
 BuildRequires: python python-devel swig
