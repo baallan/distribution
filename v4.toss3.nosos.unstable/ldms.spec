@@ -82,6 +82,9 @@ export CFLAGS="%{optflags} -O1 -g"
 --enable-rdma \
 --disable-mmap \
 --enable-swig \
+--enable-doc \
+--enable-doc-html \
+--enable-doc-man \
 --disable-readline \
 --enable-ldms-python \
 --enable-python \
@@ -105,14 +108,19 @@ export CFLAGS="%{optflags} -O1 -g"
 --disable-procdiskstats \
 --disable-atasmart \
 --disable-hadoop \
---disable-generic_sampler \
+--enable-generic_sampler \
 --disable-switchx \
 --disable-sensors \
 --enable-dstat \
 --enable-llnl-edac \
---disable-sysclassib \
+--enable-sysclassib \
 --enable-opa2 \
 --disable-influx \
+--enable-jobinfo-slurm \
+--enable-spank-plugin \
+--enable-slurm-sampler \
+--with-slurm=/usr \
+--disable-tsampler \
 --enable-jobinfo \
 --enable-perf \
 --enable-jobid \
@@ -129,7 +137,9 @@ export CFLAGS="%{optflags} -O1 -g"
 --enable-filesingle \
 --enable-munge \
 --enable-syspapi-sampler \
+--enable-papi-sampler \
 --with-libpapi=/usr/lib64/ovis-ldms/papi-%{papiversion} \
+--with-libpfm=/usr/lib64/ovis-ldms/papi-%{papiversion} \
 --enable-fabric --with-libfabric=/usr
 
 make V=1 %{?_smp_mflags}
@@ -162,6 +172,8 @@ mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/init.d
 mkdir -p $RPM_BUILD_ROOT%{_prefix}/lib/systemd/system
 cp $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}/sample_init_scripts/genders/sysv/etc/init.d/ldms* $RPM_BUILD_ROOT%{_sysconfdir}/init.d/
 cp -ar $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}/sample_init_scripts/genders/systemd/etc/* $RPM_BUILD_ROOT%{_sysconfdir}
+cp -r $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}/sample_init_scripts/genders/systemd/services/ldms*.service $RPM_BUILD_ROOT%{_prefix}/lib/systemd/system
+
 mkdir -p -m 755 $RPM_BUILD_ROOT%{_localstatedir}/log/ldmsd
 mkdir -p -m 755 $RPM_BUILD_ROOT%{_localstatedir}/run/ldmsd
 mkdir -p -m 755 $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/ldms.d/ClusterGenders
@@ -207,12 +219,14 @@ package.
 %{_includedir}/*/*.h
 %{_includedir}/*/*/*.h
 %{_includedir}/ovis-ldms-config.h
+%exclude %{_includedir}/json/json_util.h
 #end devel
 
 %package test
 Summary: LDMS test package
 Group: %{ldms_grp}
 Requires: ovis-ldms = %{version}
+Obsoletes: ovis-test < 4
 %description test
 This is a collection of test scripts for (LDMS).
 They also serve as examples, but are not usually of direct 
@@ -232,6 +246,7 @@ interest on compute nodes in production clusters.
 Summary: LDMS base initscripts for libgenders control of %{name}
 Group: %{ldms_grp}
 Requires: ovis-ldms = %{version}
+Obsoletes: ovis-initscripts-base < 4
 %description initscripts-base
 This is the support file set for libgenders based booting of LDMS daemons.
 Users normally provide information via /etc/genders (or alternate file)
@@ -262,6 +277,7 @@ control file, use of libgenders can be bypassed.
 Summary: LDMS systemd scripts for libgenders control of %{name}
 Group: %{ldms_grp}
 Requires: ovis-ldms = %{version} ovis-ldms-initscripts-base = %{version}
+Obsoletes: ovis-initscripts-systemd < 4
 %description initscripts-systemd
 This is the libgenders based systemd scripts for LDMS daemons.
 Users normally provide information via /etc/genders (or alternate file)
@@ -279,6 +295,7 @@ to make these scripts operate. They are required to fail out of the box.
 Summary: LDMS sysv init scripts for libgenders control of %{name}
 Group: %{ldms_grp}
 Requires: ovis-ldms = %{version} ovis-ldms-initscripts-base = %{version}
+Obsoletes: ovis-initscripts-sysv < 4
 %description initscripts-sysv
 This is the libgenders based sysv init scripts for LDMS daemons.
 Users must provide information via /etc/genders (or alternate file)
@@ -295,6 +312,7 @@ to make these scripts operate. They are required to fail out of the box.
 %package doc
 Summary: Documentation files for %{name}
 Group: %{ldms_all}
+Obsoletes: ovis-doc < 4
 ## Requires: %{name}-devel = %{version}-%{release}
 %description doc
 Doxygen files for ovis package.
@@ -310,14 +328,16 @@ Doxygen files for ovis package.
 
 %package python2
 Summary: Python files for LDMS
-%description python2
-Python files for ovis
+Obsoletes: ovis-python2 < 4
+Group: %{ldms_all}
 # install needs
 Requires: python
 Requires: ovis-ldms = %{version}
 # build needs
 BuildRequires: python
 BuildRequires: python python-devel swig
+%description python2
+Python files for ovis
 %files python2
 %defattr(-,root,root)
 %{_prefix}/lib/python2.7/site-packages/ovis_ldms
@@ -328,7 +348,7 @@ BuildRequires: python python-devel swig
 # and https://fedoraproject.org/wiki/Packaging:Python
 
 %changelog
-* Tue Apr 7 2020 Ben Allan <baallan@sandia.gov> 4.3.4-1
-Create 4.3.4 software collection.
+* Tue Apr 21 2020 Ben Allan <baallan@sandia.gov> 4.3.4-1
+Create 4.3.4 toss nonrelocatable
 * Mon Dec 9 2019 Ben Allan <baallan@sandia.gov> 4.3.1-1
 Create 4.3.3 software collection.

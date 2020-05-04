@@ -7,6 +7,7 @@ Requires: ovis-papi
 Requires: ovis-ldms
 Requires: ovis-ldms-initscripts-base
 Requires: ovis-ldms-initscripts-systemd
+Requires: ovis-llnl-lustre
 
 %description
 This bundles ldms with hpc-orientged samplers for TOSS3

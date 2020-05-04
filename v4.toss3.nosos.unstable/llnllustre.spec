@@ -49,7 +49,7 @@ rm -rf $RPM_BUILD_ROOT
 echo bBUILDROOT $RPM_BUILD_ROOT
 export CFLAGS="%{optflags} -O1 -g"
 
-./configure
+%configure
 make %{?_smp_mflags}
 
 %install

@@ -6,9 +6,9 @@ export COLLVERSION=$(cat ./ovisversion)
 
 packing=v4.toss3.nosos.unstable
 PART=LDMS
-ovis_branch=munge_genders_v4
+ovis_branch=OVIS-4
 NetworkRequires=github.com
-OVISREPO=https://github.com/baallan/ovis.git
+OVISREPO=https://github.com/ovis-hpc/ovis.git
 
 if test -n "$MODULEPATH"; then
 	module purge
@@ -51,13 +51,13 @@ cd ..
 
 
 cd $PART
-patches=""
+patches=
 for i in $patches; do
 	# patch -p1 < ../patches/$i
 	git apply ../patches/$i
 	git commit -a -m "add $packing distribution patches: $i"
 done
-newfiles=ldms/src/sampler/loadavg
+newfiles=
 if test -n "$newfiles"; then
 	git add $newfiles
 	git commit -a -m "add $packing distribution files: $newfilest"
