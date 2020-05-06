@@ -1,0 +1,21 @@
+diff --git a/ldms/src/store/store_csv_common.c b/ldms/src/store/store_csv_common.c
+index 2b0438a..fe45c39 100644
+--- a/ldms/src/store/store_csv_common.c
++++ b/ldms/src/store/store_csv_common.c
+@@ -230,6 +230,8 @@ void notify_output(const char *event, const char *name, const char *ftype,
+  */
+ static int validate_env(const char *var, const char *val, struct csv_plugin_static *cps) {
+ 	int rc = 0;
++	if (!val)
++		return 0;
+ 	const char *c = val;
+ 	const char *b = NULL;
+ 	for ( ; *c != '\0'; c++) {
+@@ -510,6 +512,7 @@ void rename_output(const char *name,
+ 			strerror_r(err, errbuf, EBSIZE);
+ 			cps->msglog(LDMSD_LERROR, "%s: rename_output: failed to create directory for %s: %s\n",
+ 				cps->pname, newname, errbuf);
++			free(newname);
+ 			return;
+ 		}
+ 

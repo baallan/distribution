@@ -1,0 +1,25 @@
+diff --git a/ldms/src/sampler/loadavg/loadavg.c b/ldms/src/sampler/loadavg/loadavg.c
+index 64a17ed..1d8d561 100644
+--- a/ldms/src/sampler/loadavg/loadavg.c
++++ b/ldms/src/sampler/loadavg/loadavg.c
+@@ -246,7 +246,6 @@ static int create_metric_set(base_data_t base)
+ 	return 0;
+ 
+ err:
+-	schema = NULL;
+ 	return rc;
+ }
+ 
+diff --git a/ldms/src/sampler/lustre/lustre2_oss.c b/ldms/src/sampler/lustre/lustre2_oss.c
+index 789b007..db64358 100644
+--- a/ldms/src/sampler/lustre/lustre2_oss.c
++++ b/ldms/src/sampler/lustre/lustre2_oss.c
+@@ -422,6 +422,6 @@ struct ldmsd_plugin *get_plugin(ldmsd_msg_log_f pf)
+ out:
+ 	return &lustre_oss_plugin.base;
+ 
+-	errno = ENOMEM;
+-	return NULL;
++
++
+ }

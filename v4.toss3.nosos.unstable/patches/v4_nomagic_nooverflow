@@ -1,0 +1,103 @@
+diff --git a/ldms/src/sampler/meminfo/meminfo.c b/ldms/src/sampler/meminfo/meminfo.c
+index b3d31c4..e5a0541 100644
+--- a/ldms/src/sampler/meminfo/meminfo.c
++++ b/ldms/src/sampler/meminfo/meminfo.c
+@@ -75,14 +75,15 @@ static ldmsd_msg_log_f msglog;
+ static int metric_offset;
+ static base_data_t base;
+ 
++#define LBUFSZ 256
+ static int create_metric_set(base_data_t base)
+ {
+ 	ldms_schema_t schema;
+ 	int rc, i;
+ 	uint64_t metric_value;
+ 	char *s;
+-	char lbuf[256];
+-	char metric_name[128];
++	char lbuf[LBUFSZ];
++	char metric_name[LBUFSZ];
+ 
+ 	mf = fopen(procfile, "r");
+ 	if (!mf) {
+@@ -213,7 +214,7 @@ static int sample(struct ldmsd_sampler *self)
+ 	int metric_no;
+ 	char *s;
+ 	char lbuf[256];
+-	char metric_name[128];
++	char metric_name[LBUFSZ];
+ 	union ldms_value v;
+ 
+ 	if (!set) {
+diff --git a/ldms/src/sampler/procnfs.c b/ldms/src/sampler/procnfs.c
+index 388f42d..6e7d285 100644
+--- a/ldms/src/sampler/procnfs.c
++++ b/ldms/src/sampler/procnfs.c
+@@ -255,12 +255,14 @@ PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" \
+ 	PRIu64 " %" PRIu64 " %" PRIu64 " %s\n"
+ 
+ static int nfs3_warn_once = 1;
++#define LBUFSZ 256
++#define VBUFSZ 23
+ static int sample(struct ldmsd_sampler *self)
+ {
+ 	int rc, i;
+ 	char *s;
+-	char lbuf[256];
+-	union ldms_value v[23];
++	char lbuf[LBUFSZ];
++	union ldms_value v[VBUFSZ];
+ 
+ 	if (!set) {
+ 		msglog(LDMSD_LDEBUG, SAMP ": plugin not initialized\n");
+@@ -279,7 +281,7 @@ static int sample(struct ldmsd_sampler *self)
+ 		if (!s)
+ 			break;
+ 
+-		char junk[5][100];
++		char junk[5][LBUFSZ];
+ 		if (strncmp(s,"rpc ", 4) == 0) {
+ 			rc = sscanf(lbuf, "%s %" PRIu64 " %" PRIu64 "%s\n",
+ 					junk[0], &v[0].v_u64, &v[1].v_u64, junk[1]);
+@@ -301,7 +303,7 @@ static int sample(struct ldmsd_sampler *self)
+ 					&v[15].v_u64, &v[16].v_u64, &v[17].v_u64,
+ 					&v[18].v_u64, &v[19].v_u64, &v[20].v_u64,
+ 					&v[21].v_u64, &v[22].v_u64, junk[3]);
+-			if (rc < 24) {
++			if (rc < VBUFSZ + 1) {
+ 				rc = EINVAL;
+ 				goto out;
+ 			}
+diff --git a/ldms/src/sampler/vmstat/vmstat.c b/ldms/src/sampler/vmstat/vmstat.c
+index 6f4d7fb..df2d63a 100644
+--- a/ldms/src/sampler/vmstat/vmstat.c
++++ b/ldms/src/sampler/vmstat/vmstat.c
+@@ -80,14 +80,14 @@ static ldms_set_t get_set(struct ldmsd_sampler *self)
+ {
+ 	return set;
+ }
+-
++#define LBUFSZ 256
+ static int create_metric_set(base_data_t base)
+ {
+ 	int rc;
+ 	uint64_t metric_value;
+ 	char *s;
+-	char lbuf[256];
+-	char metric_name[128];
++	char lbuf[LBUFSZ];
++	char metric_name[LBUFSZ];
+ 	ldms_schema_t schema;
+ 
+ 	mf = fopen(procfile, "r");
+@@ -197,8 +197,8 @@ static int sample(struct ldmsd_sampler *self)
+ 	int rc;
+ 	int metric_no;
+ 	char *s;
+-	char lbuf[256];
+-	char metric_name[128];
++	char lbuf[LBUFSZ];
++	char metric_name[LBUFSZ];
+ 	union ldms_value v;
+ 
+ 	if (!set) {

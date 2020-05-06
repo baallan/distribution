@@ -51,7 +51,7 @@ cd ..
 
 
 cd $PART
-patches=
+patches="v4_csv_common_bugs v4_dead_code_samplers v4_fix_util_bugs v4_function_store_bugs v4_json_nits v4_ldms_c_oom_check v4_ldmsctl_membugs v4_ldmsd_config_mem_bugs v4_ldmsd_pointer_bugs_localtime v4_ldmsd_producer_oom_chk v4_ldmsd_request_pointer_bugs v4_ldmsd_request_util_bugs v4_ldmsd_stream_bugs v4_ldmsd_updtr_bugs v4_ldms_i_localtime v4_ldms_ls_oom_and_localtime v4_lustre_sampler_bugs v4_missing_oom_checks v4_nomagic_nooverflow v4_olog_bugs v4_perfevent_bugs v4_procdiskstats_ooms_errs v4_sampler_deadcode v4_store_csv_bugs v4_stream_test_oom_checks v4_zap_rdma_err_codes v4_zap_sock_unused_asn"
 for i in $patches; do
 	# patch -p1 < ../patches/$i
 	git apply ../patches/$i

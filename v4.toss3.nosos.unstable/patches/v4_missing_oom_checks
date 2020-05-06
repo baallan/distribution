@@ -1,0 +1,43 @@
+diff --git a/ldms/src/sampler/procnetdev.c b/ldms/src/sampler/procnetdev.c
+index 47eb6c6..b7e2ac6 100644
+--- a/ldms/src/sampler/procnetdev.c
++++ b/ldms/src/sampler/procnetdev.c
+@@ -219,6 +219,10 @@ static int config(struct ldmsd_plugin *self, struct attr_value_list *kwl, struct
+ 		goto err;
+ 	}
+ 	ifacelist = strdup(ivalue);
++	if (!ifacelist) {
++		msglog(LDMSD_LERROR, SAMP ": out of memory\n");
++		goto err;
++	}
+ 	pch = strtok_r(ifacelist, ",", &saveptr);
+ 	while (pch != NULL){
+ 		if (niface >= (MAXIFACE-1))
+diff --git a/ldms/src/sampler/slurm/slurm_sampler.c b/ldms/src/sampler/slurm/slurm_sampler.c
+index 204a525..bdd5135 100644
+--- a/ldms/src/sampler/slurm/slurm_sampler.c
++++ b/ldms/src/sampler/slurm/slurm_sampler.c
+@@ -474,6 +474,10 @@ static int config(struct ldmsd_plugin *self, struct attr_value_list *kwl, struct
+ 		stream = strdup(value);
+ 	else
+ 		stream = strdup("slurm");
++	if (!stream) {
++		msglog(LDMSD_LERROR, "slurm_sampler: out of memory\n");
++		return ENOMEM;
++	}
+ 	ldmsd_stream_subscribe(stream, slurm_recv_cb, self);
+ 
+ 	value = av_value(avl, "producer");
+diff --git a/lib/src/coll/label-set.c b/lib/src/coll/label-set.c
+index 40de8e3..8937806 100644
+--- a/lib/src/coll/label-set.c
++++ b/lib/src/coll/label-set.c
+@@ -461,6 +461,8 @@ static struct ovis_label_id *create_pair(struct ovis_name label, struct ovis_nam
+ 		/* bogus depth bit found*/
+ 	}
+ 	struct ovis_label_id * oli = malloc(sizeof(*oli));
++	if (!oli)
++		return NULL;
+ 	oli->label = label;
+ 	oli->id = id;
+ 	char *tmp1 = (char *)label.name, *tmp2 = (char *)id.name;

@@ -1,0 +1,105 @@
+diff --git a/ldms/src/ldmsd/test/ldmsd_stream_publish.c b/ldms/src/ldmsd/test/ldmsd_stream_publish.c
+index a3daa37..d2ad079 100644
+--- a/ldms/src/ldmsd/test/ldmsd_stream_publish.c
++++ b/ldms/src/ldmsd/test/ldmsd_stream_publish.c
+@@ -67,15 +67,31 @@ int main(int argc, char **argv)
+ 		switch (opt) {
+ 		case 'h':
+ 			host = strdup(optarg);
++			if (!host) {
++				printf("ERROR: out of memory\n");
++				exit(1);
++			}
+ 			break;
+ 		case 'p':
+ 			port = strdup(optarg);
++			if (!port) {
++				printf("ERROR: out of memory\n");
++				exit(1);
++			}
+ 			break;
+ 		case 'x':
+ 			xprt = strdup(optarg);
++			if (!xprt) {
++				printf("ERROR: out of memory\n");
++				exit(1);
++			}
+ 			break;
+ 		case 'a':
+ 			auth = strdup(optarg);
++			if (!auth) {
++				printf("ERROR: out of memory\n");
++				exit(1);
++			}
+ 			break;
+ 		case 'A':
+ 			lval = strtok(optarg, "=");
+@@ -94,9 +110,17 @@ int main(int argc, char **argv)
+ 			break;
+ 		case 's':
+ 			stream = strdup(optarg);
++			if (!stream) {
++				printf("ERROR: out of memory\n");
++				exit(1);
++			}
+ 			break;
+ 		case 'f':
+ 			filename = strdup(optarg);
++			if (!filename) {
++				printf("ERROR: out of memory\n");
++				exit(1);
++			}
+ 			break;
+ 		case 't':
+ 			if (0 == strcmp("json", optarg)) {
+diff --git a/ldms/src/ldmsd/test/ldmsd_stream_subscribe.c b/ldms/src/ldmsd/test/ldmsd_stream_subscribe.c
+index 2f4996c..b1f58c9 100644
+--- a/ldms/src/ldmsd/test/ldmsd_stream_subscribe.c
++++ b/ldms/src/ldmsd/test/ldmsd_stream_subscribe.c
+@@ -89,6 +89,10 @@ static int stream_publish_handler(ldmsd_req_hdr_t req)
+ 		exit(5);
+ 	}
+ 	stream_name = strdup((char *)attr->attr_value);
++	if (!stream_name) {
++		printf("ERROR: out of memory\n");
++		exit(1);
++	}
+
+ 	attr = ldmsd_first_attr(req);
+ 	while (attr->discrim) {
+@@ -246,9 +250,17 @@ int main(int argc, char **argv)
+ 			break;
+ 		case 'x':
+ 			xprt = strdup(optarg);
++			if (!xprt) {
++				printf("ERROR: out of memory\n");
++				exit(1);
++			}
+ 			break;
+ 		case 'a':
+ 			auth = strdup(optarg);
++			if (!auth) {
++				printf("ERROR: out of memory\n");
++				exit(1);
++			}
+ 			break;
+ 		case 'A':
+ 			lval = strtok(optarg, "=");
+@@ -267,9 +279,17 @@ int main(int argc, char **argv)
+ 			break;
+ 		case 's':
+ 			stream = strdup(optarg);
++			if (!stream) {
++				printf("ERROR: out of memory\n");
++				exit(1);
++			}
+ 			break;
+ 		case 'f':
+ 			filename = strdup(optarg);
++			if (!filename) {
++				printf("ERROR: out of memory\n");
++				exit(1);
++			}
+ 			break;
+ 		case 'D':
+ 			daemonize = 1;
