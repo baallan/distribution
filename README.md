@@ -1,3 +1,6 @@
+**As of August, 2020 this site has been moved and reorganized to https://github.com/ovis-hpc/distribution/ **
+This site will continue as baallan's development repo for work to be eventually published at ovis-hpc.
+
 As of Dec 2018, there are several planned platforms, organized by directory. See below for instructions on package construction.
 
 ## Platforms with binary packaging
